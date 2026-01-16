@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SKYSEND Backoffice</title>
+  <style>
+    body{font-family:Segoe UI, Tahoma, sans-serif;background:#f4f6f8;margin:0}
+    header{background:#667eea;color:#fff;padding:20px}
+    header h1{margin:0;font-size:24px}
+    .container{padding:20px}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:20px}
+    .card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+    .card h2{margin:0;font-size:16px;color:#555}
+    .card p{font-size:30px;margin:10px 0 0;color:#667eea;font-weight:bold}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+    th,td{padding:12px 15px;text-align:left}
+    th{background:#eee;font-weight:600;cursor:pointer;user-select:none}
+    th span{font-size:12px;color:#666;margin-left:4px}
+    tr:nth-child(even){background:#fafafa}
+    .badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600}
+    .aot{background:#e3f2fd;color:#1565c0}
+    .status-in{background:#e8f5e9;color:#2e7d32}
+    .status-out{background:#ffebee;color:#c62828}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:center}
+    .toolbar input,.toolbar select,.toolbar button{padding:10px;border-radius:8px;border:1px solid #ccc;font-size:14px}
+    .toolbar button{background:#667eea;color:#fff;border:none;cursor:pointer}
+    .toolbar button.secondary{background:#999}
+    dialog{border:none;border-radius:12px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+  </style>
+</head>
+<body>
+<header>
+  <h1>✈️ SKYSEND Backoffice</h1>
+</header>
+
+<div class="container">
+  <div class="cards">
+    <div class="card"><h2>พัสดุทั้งหมด</h2><p id="sumAll">0</p></div>
+    <div class="card"><h2>อยู่ในคลัง</h2><p id="sumIn">0</p></div>
+    <div class="card"><h2>ส่งออกแล้ว</h2><p id="sumOut">0</p></div>
+    <div class="card"><h2>สนามบิน</h2><p>6</p></div>
+  </div>
+
+  <div class="toolbar">
+    <input type="date" id="filterDate" />
+    <input type="text" id="searchInput" placeholder="ค้นหา Tracking / ผู้ส่ง / ที่อยู่ / เบอร์ผู้ส่ง" />
+    <select id="filterAOT">
+      <option value="">ทุกสนามบิน</option>
+      <option>BKK</option><option>DMK</option><option>CNX</option><option>HKT</option><option>HDY</option><option>CEI</option>
+    </select>
+    <select id="filterStatus">
+      <option value="">ทุกสถานะ</option>
+      <option value="อยู่คลัง">อยู่คลัง</option>
+      <option value="ส่งออกแล้ว">ส่งออกแล้ว</option>
+    </select>
+    <button class="secondary" onclick="refreshPage()">🔄 Refresh</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th onclick="sortBy('track')">Tracking<span id="s-track"></span></th>
+        <th onclick="sortBy('sentAt')">วันที่เข้าระบบ<span id="s-sentAt"></span></th>
+        <th onclick="sortBy('aot')">สนามบิน<span id="s-aot"></span></th>
+        <th onclick="sortBy('sender')">ผู้ส่ง<span id="s-sender"></span></th>
+        <th onclick="sortBy('address')">ที่อยู่ปลายทาง<span id="s-address"></span></th>
+        <th onclick="sortBy('senderPhone')">เบอร์ผู้ส่ง<span id="s-senderPhone"></span></th>
+        <th onclick="sortBy('weight')">น้ำหนัก<span id="s-weight"></span></th>
+        <th onclick="sortBy('status')">สถานะ<span id="s-status"></span></th>
+        <th>Flow</th>
+      </tr>
+    </thead>
+    <tbody id="parcelTable"></tbody>
+  </table>
+</div>
+
+<dialog id="timelineDialog"></dialog>
+
+<script>
+// =========================
+// DATA + UTILITIES
+// =========================
+const parcels = [];
+const AOTS = ['BKK','DMK','CNX','HKT','HDY','CEI'];
+
+// เริ่มต้นให้เรียงตามวันที่เข้าระบบ (ล่าสุดก่อน)
+let sortState = { key: 'sentAt', asc: false };
+let _initialSortDone = false;
+
+// สุ่มชื่อ–นามสกุลไทย
+const thaiFirstNames = ['ธนพล','พิมพ์ชนก','สมศักดิ์','กานต์ชนก','วรพล','ชลธิชา','อภิชาติ','ลลิตา','ปรีชา','ธัญญา','สุพจน์','อรอนงค์','กิตติพงษ์','ศิริพร','มนัส','วราภรณ์','อนุชา','พัชรี','ธีรพงษ์','กมลชนก','สันติ','ปวีณา','อำนาจ','นฤมล','สุชาติ','รัตนา','ไพศาล','เบญจมาศ','ณัฐพล','ปณิธาน','จิราภรณ์','วาสนา','เดชาธร','อัจฉรา','พิชิต','ภัทรวดี','ชาญชัย','ณัฐกานต์','กุลธิดา','วุฒิชัย','ศศิธร','ธวัชชัย','ปรียานุช','จารุวรรณ','ปกรณ์','อิสรีย์','ธีรศักดิ์','ดวงใจ','ศุภชัย','ขวัญฤดี'];
+
+const thaiLastNames = ['ศรีชัย','วัฒนา','บุญมา','พรหมมา','อินทร์ทอง','มณีรัตน์','แก้วคำ','สายทอง','คำดี','สุขใจ','แสนดี','ใจบุญ','วงศ์ชัย','แก้วใส','รุ่งเรือง','พูลผล','จันทร์ดี','แดงดี','แสงทอง','วิเศษ','สุขสบาย','แสนสุข','กล้าหาญ','ทองแท้','มีชัย','ศรีสุข','อินทร','วงษ์ดี','เจริญผล','พูนทรัพย์','ศักดิ์ศรี','วัฒนกุล','ทองหล่อ','นาคะ','สุวรรณ','ประเสริฐ','กิตติคุณ','รัตนวงศ์','บุญส่ง','โชติช่วง','ธรรมรักษ์','ศุภกิจ','เพิ่มพูน','วิริยะ','สุนทร','จงเจริญ','นิลวรรณ','คำแปง','พงษ์ดี','แสงใส'];
+
+const thaiAddressMap = [
+  {prov:'กรุงเทพมหานคร',dist:'บางรัก',zip:'10500'},
+  {prov:'กรุงเทพมหานคร',dist:'ปทุมวัน',zip:'10330'},
+  {prov:'เชียงใหม่',dist:'เมือง',zip:'50000'},
+  {prov:'เชียงใหม่',dist:'แม่ริม',zip:'50180'},
+  {prov:'เชียงราย',dist:'แม่สาย',zip:'57130'},
+  {prov:'ขอนแก่น',dist:'เมือง',zip:'40000'},
+  {prov:'นครราชสีมา',dist:'เมือง',zip:'30000'},
+  {prov:'ชลบุรี',dist:'ศรีราชา',zip:'20110'},
+  {prov:'ระยอง',dist:'เมือง',zip:'21000'},
+  {prov:'ภูเก็ต',dist:'เมือง',zip:'83000'},
+  {prov:'สงขลา',dist:'หาดใหญ่',zip:'90110'},
+  {prov:'สุราษฎร์ธานี',dist:'เกาะสมุย',zip:'84320'},
+  {prov:'นครศรีธรรมราช',dist:'ทุ่งสง',zip:'80110'},
+  {prov:'อุบลราชธานี',dist:'วารินชำราบ',zip:'34190'},
+  {prov:'อุดรธานี',dist:'เมือง',zip:'41000'},
+  {prov:'พิษณุโลก',dist:'เมือง',zip:'65000'},
+  {prov:'พระนครศรีธรรมราช',dist:'เมือง',zip:'13000'},
+  {prov:'ปทุมธานี',dist:'ลำลูกกา',zip:'12150'},
+  {prov:'นนทบุรี',dist:'ปากเกร็ด',zip:'11120'},
+  {prov:'สมุทรปราการ',dist:'บางพลี',zip:'10540'}
+];
+
+const thaiStreets = ['สุขุมวิท','พหลโยธิน','วิภาวดีรังสิต','มิตรภาพ','เจริญกรุง','นิมมานเหมินท์','ราชดำเนิน','เพชรเกษม','ศรีนครินทร์','ลาดพร้าว','รามคำแหง','กาญจนาภิเษก','มหิดล','ประชาราษฎร์','อุดมสุข','สันติธรรม','ทุ่งรี','สายเอเชีย','ท่าแพ','แม่ฟ้าหลวง'];
+
+function randomThaiName() {
+  const f = thaiFirstNames[Math.floor(Math.random()*thaiFirstNames.length)];
+  const l = thaiLastNames[Math.floor(Math.random()*thaiLastNames.length)];
+  return 'นาย' + f + ' ' + l;
+}
+
+function randomThaiAddress() {
+  const no = Math.floor(1 + Math.random()*299);
+  const street = thaiStreets[Math.floor(Math.random()*thaiStreets.length)];
+  const pick = thaiAddressMap[Math.floor(Math.random()*thaiAddressMap.length)];
+  return `บ้านเลขที่ ${no} ถนน${street} อ.${pick.dist} จ.${pick.prov} ${pick.zip}`;
+}
+
+function randomPhone() {
+  return '08' + Math.floor(10000000 + Math.random()*90000000);
+}
+
+function parseDate(str) {
+  const [d, t] = str.split(' ');
+  const [day, mon, year] = d.split('/').map(Number);
+  const [h, m] = t.split(':').map(Number);
+  return new Date(year, mon - 1, day, h, m);
+}
+
+function formatDate(d) {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+}
+
+// =========================
+// SEED DATA (50 parcels)
+// =========================
+
+// สุ่มเวลาแบบสมจริง: ส่วนใหญ่ภายใน 7 วันที่ผ่านมา, บางส่วนต้นเดือน, อยู่ในเวลาทำการ
+function randomDateFromMonthStart() {
+  const now = new Date();
+
+  function randomBusinessTime(base) {
+    const h = 8 + Math.floor(Math.random() * 13); // 08–20
+    const m = Math.floor(Math.random() * 60);
+    const r = new Date(base);
+    r.setHours(h, m, 0, 0);
+    return r;
+  }
+
+  let d;
+  const roll = Math.random();
+
+  if (roll < 0.6) {
+    const daysBack = Math.floor(Math.random() * 4); // 0..3
+    d = new Date(now);
+    d.setDate(now.getDate() - daysBack);
+  } else if (roll < 0.9) {
+    const daysBack = 4 + Math.floor(Math.random() * 4); // 4..7
+    d = new Date(now);
+    d.setDate(now.getDate() - daysBack);
+  } else {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const span = Math.max(1, now.getDate() - 1);
+    d = new Date(start);
+    d.setDate(1 + Math.floor(Math.random() * span));
+  }
+
+  return formatDate(randomBusinessTime(d));
+}
+
+function addMinutes(date, mins) {
+  const d = new Date(date.getTime() + mins * 60000);
+  return formatDate(d);
+}
+
+for (let i = 0; i < 50; i++) {
+  const baseTime = randomDateFromMonthStart();
+  const baseDate = parseDate(baseTime);
+
+  const events = [
+    { point:'รับจากเครื่อง Kiosk', by:'เจ้าหน้าที่ Kiosk ' + ((i % 4) + 1), phone: randomPhone(), time: baseTime },
+    { point:'คัดแยกคลัง', by:'พนักงานคลัง ' + ((i % 3) + 1), phone: randomPhone(), time: addMinutes(baseDate, 30 + (i % 20)) },
+    { point:'เตรียมส่งออก', by:'เจ้าหน้าที่ขนส่ง ' + ((i % 2) + 1), phone: randomPhone(), time: addMinutes(baseDate, 90 + (i % 40)) }
+  ];
+
+  parcels.push({
+    track: 'SKY' + (240001 + i),
+    sentAt: events[0].time,
+    aot: AOTS[i % AOTS.length],
+    sender: randomThaiName(),
+    address: randomThaiAddress(),
+    senderPhone: randomPhone(),
+    weight: 200 + (i * 11) % 600,
+    status: i % 2 === 0 ? 'อยู่คลัง' : 'ส่งออกแล้ว',
+    events
+  });
+}
+
+// =========================
+// SORTING
+// =========================
+function updateSortIcons() {
+  ['track','sentAt','aot','sender','address','senderPhone','weight','status'].forEach(k => {
+    const el = document.getElementById('s-' + k);
+    if (!el) return;
+    if (sortState.key === k) {
+      el.textContent = sortState.asc ? ' ▲' : ' ▼';
+    } else {
+      el.textContent = '';
+    }
+  });
+}
+
+function sortBy(key) {
+  // วันที่เข้าระบบ: บังคับเรียงจากใหม่ -> เก่าเสมอ
+  if (key === 'sentAt') {
+    sortState.key = key;
+    sortState.asc = false; // newest first
+    _initialSortDone = true;
+  } else if (!_initialSortDone) {
+    sortState.key = key;
+    sortState.asc = true;
+    _initialSortDone = true;
+  } else if (sortState.key === key) {
+    sortState.asc = !sortState.asc;
+  } else {
+    sortState.key = key;
+    sortState.asc = true;
+  }
+
+  parcels.sort((a, b) => {
+    let va = a[key];
+    let vb = b[key];
+
+    if (key === 'sentAt') {
+      va = parseDate(va);
+      vb = parseDate(vb);
+      // เรียงตาม "วัน" ก่อน แล้วค่อย "เวลา"
+      const dA = new Date(va.getFullYear(), va.getMonth(), va.getDate());
+      const dB = new Date(vb.getFullYear(), vb.getMonth(), vb.getDate());
+      if (dA.getTime() !== dB.getTime()) {
+        return sortState.asc ? dA - dB : dB - dA;
+      }
+      return sortState.asc ? va - vb : vb - va;
+    }
+
+    if (typeof va === 'number') {
+      return sortState.asc ? va - vb : vb - va;
+    }
+
+    return sortState.asc
+      ? String(va).localeCompare(String(vb))
+      : String(vb).localeCompare(String(va));
+  });
+
+  updateSortIcons();
+  render();
+}
+
+// =========================
+// RENDERING
+// =========================
+function render() {
+  const tb = document.getElementById('parcelTable');
+  tb.innerHTML = '';
+  let sin = 0, sout = 0;
+
+  parcels.forEach(p => {
+    if (filter(p)) {
+      tb.innerHTML += `
+        <tr>
+          <td>${p.track}</td>
+          <td>${p.sentAt}</td>
+          <td><span class="badge aot">${p.aot}</span></td>
+          <td>${p.sender}</td>
+          <td>${p.address}</td>
+          <td>${p.senderPhone}</td>
+          <td>${p.weight} g</td>
+          <td><span class="badge ${p.status === 'อยู่คลัง' ? 'status-in' : 'status-out'}">${p.status}</span></td>
+          <td><button onclick="showTimeline('${p.track}')">ดู Flow</button></td>
+        </tr>
+      `;
+    }
+    p.status === 'อยู่คลัง' ? sin++ : sout++;
+  });
+
+  document.getElementById('sumAll').innerText = parcels.length;
+  document.getElementById('sumIn').innerText = sin;
+  document.getElementById('sumOut').innerText = sout;
+}
+
+function filter(p) {
+  const fd = document.getElementById('filterDate').value;
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const fa = document.getElementById('filterAOT').value;
+  const fs = document.getElementById('filterStatus').value;
+  const matchDate = !fd || p.sentAt.startsWith(fd.split('-').reverse().join('/'));
+  return matchDate && (!q || (p.track + p.sender + p.address + p.senderPhone).toLowerCase().includes(q)) &&
+         (!fa || p.aot === fa) &&
+         (!fs || p.status === fs);
+}
+
+['searchInput','filterAOT','filterStatus','filterDate'].forEach(id => {
+  document.getElementById(id).oninput = render;
+});
+
+function refreshPage() {
+  document.getElementById('filterDate').value = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterAOT').value = '';
+  document.getElementById('filterStatus').value = '';
+  sortState = { key: 'sentAt', asc: false };
+  _initialSortDone = false;
+  sortBy('sentAt');
+}
+
+// =========================
+// FLOW DIALOG
+// =========================
+function showTimeline(track) {
+  const p = parcels.find(x => x.track === track);
+  let html = '<h3>📦 Flow Diagram : ' + track + '</h3>';
+
+  p.events.forEach((e, i) => {
+    html += `
+      <p>
+        🔹 <strong>${i + 1}. ${e.point}</strong><br>
+        👤 ${e.by}<br>
+        📞 ${e.phone}<br>
+        ⏰ ${e.time}
+      </p>
+    `;
+    if (i < p.events.length - 1) {
+      html += '<p style="text-align:center">⬇️</p>';
+    }
+  });
+
+  html += '<button onclick="document.getElementById(\'timelineDialog\').close()">ปิด</button>';
+  const dialog = document.getElementById('timelineDialog');
+  dialog.innerHTML = html;
+  dialog.showModal();
+}
+
+// Initial load
+updateSortIcons();
+sortBy('sentAt');
+</script>
+</body>
+</html>
