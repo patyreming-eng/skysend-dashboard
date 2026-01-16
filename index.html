@@ -55,6 +55,7 @@
       <option value="ส่งออกแล้ว">ส่งออกแล้ว</option>
     </select>
     <button class="secondary" onclick="refreshPage()">🔄 Refresh</button>
+    <button onclick="exportCSV()">⬇️ Export CSV</button>
   </div>
 
   <table>
@@ -84,7 +85,6 @@
 const parcels = [];
 const AOTS = ['BKK','DMK','CNX','HKT','HDY','CEI'];
 
-// เริ่มต้นให้เรียงตามวันที่เข้าระบบ (ล่าสุดก่อน)
 let sortState = { key: 'sentAt', asc: false };
 let _initialSortDone = false;
 
@@ -146,15 +146,28 @@ function addMinutes(dateObj, minutes) {
 }
 
 // =========================
-// RANDOM DATE 1-15 (FIXED PER LOAD)
+// DETERMINISTIC DATE 1-15 (LOCKED BY TRACKING)
 // =========================
 const now = new Date();
-function randomDate1to15() {
+
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function dateFromTracking(track) {
+  const seed = hashCode(track);
   const year = now.getFullYear();
   const month = now.getMonth();
-  const day = 1 + Math.floor(Math.random() * 15);
-  const hour = Math.floor(Math.random() * 24);
-  const minute = Math.floor(Math.random() * 60);
+
+  const day = 1 + (seed % 15);
+  const hour = seed % 24;
+  const minute = Math.floor(seed / 24) % 60;
+
   return new Date(year, month, day, hour, minute, 0);
 }
 
@@ -164,7 +177,8 @@ function randomDate1to15() {
 parcels.length = 0;
 
 for (let i = 0; i < 100; i++) {
-  const baseDate = randomDate1to15();
+  const trackId = 'SKY' + (240001 + i);
+  const baseDate = dateFromTracking(trackId);
   const baseTime = formatDate(baseDate);
 
   const senderName = 'นาย' + thaiFirstNames[i % thaiFirstNames.length] + ' ' + thaiLastNames[i % thaiLastNames.length];
@@ -179,7 +193,7 @@ for (let i = 0; i < 100; i++) {
   ];
 
   parcels.push({
-    track: 'SKY' + (240001 + i),
+    track: trackId,
     sentAt: baseTime,
     aot: AOTS[i % AOTS.length],
     sender: senderName,
@@ -209,7 +223,7 @@ function updateSortIcons() {
 function sortBy(key) {
   if (key === 'sentAt') {
     sortState.key = key;
-    sortState.asc = false; // newest first
+    sortState.asc = false;
     _initialSortDone = true;
   } else if (!_initialSortDone) {
     sortState.key = key;
@@ -305,6 +319,38 @@ function refreshPage() {
   sortState = { key: 'sentAt', asc: false };
   _initialSortDone = false;
   sortBy('sentAt');
+}
+
+// =========================
+// EXPORT
+// =========================
+function exportCSV() {
+  const headers = ['Tracking','วันที่เข้าระบบ','สนามบิน','ผู้ส่ง','ที่อยู่ปลายทาง','เบอร์ผู้ส่ง','น้ำหนัก(g)','สถานะ'];
+  let csv = headers.join(',') + "\n";
+
+  parcels.forEach(p => {
+    if (!filter(p)) return;
+    const row = [
+      p.track,
+      p.sentAt,
+      p.aot,
+      p.sender,
+      p.address.replace(/,/g, ' '),
+      p.senderPhone,
+      p.weight,
+      p.status
+    ];
+    csv += row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',') + "\n";
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'skysend_parcels_export.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // =========================
