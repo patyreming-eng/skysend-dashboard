@@ -64,6 +64,7 @@
       transition:transform .15s ease, box-shadow .15s ease;
       position:relative;
       overflow:hidden;
+      cursor:pointer;
     }
 
     .card::after{
@@ -105,6 +106,16 @@
       padding:14px;
       border-radius:var(--radius);
       box-shadow:0 6px 20px rgba(0,0,0,.08);
+    }
+
+    /* Make search box more visible */
+    .search-input{
+      flex:1;
+      min-width:320px;
+      font-size:16px;
+      padding:12px 14px;
+      border:2px solid var(--primary);
+      box-shadow:0 0 0 4px rgba(14,165,233,.15);
     }
 
     .toolbar input,
@@ -158,6 +169,7 @@
       border-radius:var(--radius);
       overflow:hidden;
       box-shadow:0 10px 25px rgba(0,0,0,.08);
+      margin-top:0; /* header spacing handled by container now */
     }
 
     thead{
@@ -175,7 +187,7 @@
       cursor:pointer;
       user-select:none;
       position:sticky;
-      top:72px;
+      top:0; /* stick to top of table container, not under the page header */
       background:#f9fafb;
       z-index:5;
     }
@@ -193,6 +205,16 @@
     tr:nth-child(even){background:#f7f9ff}
     tr:nth-child(odd){background:#ffffff}
 
+    /* FULL MATCH ROW */
+    .full-match{
+      background:#bae6fd !important;
+      border-left:6px solid var(--primary);
+    }
+
+
+    /* HIGHLIGHT */
+    .hl{background:#fde047;color:#111827;padding:0 2px;border-radius:4px}
+
     /* BADGES */
     .badge{
       padding:4px 12px;
@@ -205,13 +227,13 @@
     .status-in{background:#e8f5e9;color:var(--success)}
     .status-out{background:#ffebee;color:var(--danger)}
 
-    /* AIRPORT COLORS (Brand-tuned pastel sky tones) */
-    .aot-BKK{background:#e0f2fe}  /* Sky Blue */
-    .aot-DMK{background:#f0f9ff}  /* Light Cloud */
-    .aot-CNX{background:#ecfeff}  /* Ice Blue */
-    .aot-HKT{background:#fff7ed}  /* Sunset Sand */
-    .aot-HDY{background:#f0fdf4}  /* Soft Green */
-    .aot-CEI{background:#eef2ff}  /* Cool Indigo */
+    /* AIRPORT COLORS */
+    .aot-BKK{background:#e0f2fe}
+    .aot-DMK{background:#f0f9ff}
+    .aot-CNX{background:#ecfeff}
+    .aot-HKT{background:#fff7ed}
+    .aot-HDY{background:#f0fdf4}
+    .aot-CEI{background:#eef2ff}
 
     /* FLOW BUTTON */
     td button{
@@ -288,7 +310,15 @@
     .user-role{font-size:11px;opacity:.9}
 
     @media (max-width: 768px){
-      th{top:64px}
+      th{top:120px}
+      .card p{font-size:26px}
+    }
+
+    .table-wrap{
+      overflow:auto;
+      max-height:70vh;
+      position:relative; /* create sticky context for table header */
+    }
       .card p{font-size:26px}
     }
   </style>
@@ -307,15 +337,14 @@
 </header>
 
 <div class="container">
-    <div class="cards">
+  <div class="cards">
     <div class="card" onclick="quickFilter('')"><h2>ทั้งหมด</h2><p id="sumAll">0</p></div>
     <div class="card" onclick="quickFilter('อยู่คลัง')"><h2>อยู่ในคลัง</h2><p id="sumIn">0</p></div>
     <div class="card" onclick="quickFilter('ส่งออกแล้ว')"><h2>ส่งออกแล้ว</h2><p id="sumOut">0</p></div>
   </div>
-  </div>
 
   <div class="toolbar">
-    <input id="searchInput" placeholder="ค้นหา Tracking / ชื่อ / ที่อยู่ / เบอร์" />
+    <input id="searchInput" class="search-input" placeholder="ค้นหา Tracking / ชื่อ / ที่อยู่ / เบอร์" />
     <input type="date" id="filterDate" />
     <select id="filterAOT">
       <option value="">ทุกสนามบิน</option>
@@ -337,7 +366,7 @@
     <button class="secondary" onclick="refreshPage()">🔄 Refresh</button>
   </div>
 
-  <table>
+  <div class="table-wrap"><table>
     <thead>
       <tr>
         <th onclick="sortBy('track')">Tracking<span id="s-track"></span></th>
@@ -352,7 +381,7 @@
       </tr>
     </thead>
     <tbody id="parcelTable"></tbody>
-  </table>
+  </table></div>
 </div>
 
 <dialog id="timelineDialog"></dialog>
@@ -362,7 +391,6 @@
 // GLOBAL STATE
 // =========================
 const parcels = [];
-// Allowed airports only
 const AOTS = ['BKK','DMK','CNX','HKT','HDY','CEI'];
 
 let sortState = { key: 'sentAt', asc: false };
@@ -541,8 +569,103 @@ function sortBy(key) {
 }
 
 // =========================
+// HIGHLIGHT HELPER (FIXED REGEX)
+// =========================
+function highlight(text){
+  const q = (document.getElementById('searchInput').value || '').trim();
+  if (!q) return text;
+  try{
+    // Properly escape regex special chars
+    const qEsc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('(' + qEsc + ')', 'ig');
+    return String(text).replace(re, '<span class="hl">$1</span>');
+  }catch(e){
+    return text;
+  }
+}
+
+// =========================
 // RENDERING
 // =========================
+function render() {
+  const tb = document.getElementById('parcelTable');
+  tb.innerHTML = '';
+  let sin = 0, sout = 0;
+
+  const qRaw = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+
+  // collect rows first so we can prioritize full Tracking matches
+  const rows = [];
+
+  parcels.forEach(p => {
+    if (filter(p)) {
+      const isFullMatch = qRaw && p.track.toLowerCase() === qRaw;
+
+      rows.push({ p, isFullMatch });
+    }
+    p.status === 'อยู่คลัง' ? sin++ : sout++;
+  });
+
+  // full match first, then keep original order
+  rows.sort((a, b) => {
+    if (a.isFullMatch && !b.isFullMatch) return -1;
+    if (!a.isFullMatch && b.isFullMatch) return 1;
+    return 0;
+  });
+
+  rows.forEach(({ p, isFullMatch }) => {
+    tb.innerHTML += `
+      <tr class="aot-${p.aot} ${isFullMatch ? 'full-match' : ''}">
+        <td>${highlight(p.track)}</td>
+        <td>${highlight(p.sentAt)}</td>
+        <td>${highlight(p.aot)}</td>
+        <td>${highlight(p.sender)}</td>
+        <td>${highlight(p.address)}</td>
+        <td>${highlight(p.senderPhone)}</td>
+        <td>${p.weight} g</td>
+        <td><span class="badge ${p.status === 'อยู่คลัง' ? 'status-in' : 'status-out'}">${highlight(p.status)}</span></td>
+        <td><button onclick="showTimeline('${p.track}')">ดู Flow</button></td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('sumAll').innerText = parcels.length;
+  document.getElementById('sumIn').innerText = sin;
+  document.getElementById('sumOut').innerText = sout;
+}
+
+function filter(p) {
+  const fd = document.getElementById('filterDate').value;
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const fa = document.getElementById('filterAOT').value;
+  const fs = document.getElementById('filterStatus').value;
+
+  // Date match (input yyyy-mm-dd -> compare dd/mm/yyyy)
+  let matchDate = true;
+  if (fd) {
+    const parts = fd.split('-');
+    if (parts.length === 3) {
+      const ddmmyyyy = parts[2] + '/' + parts[1] + '/' + parts[0];
+      matchDate = p.sentAt.startsWith(ddmmyyyy);
+    }
+  }
+
+  // Text search across multiple fields (case-insensitive, supports full tracking)
+  let matchText = true;
+  if (q) {
+    const hay = [p.track, p.sender, p.address, p.senderPhone, p.aot, p.status]
+      .join(' ')
+      .toLowerCase();
+
+    matchText = hay.includes(q);
+  }
+
+  const matchAOT = !fa || p.aot === fa;
+  const matchStatus = !fs || p.status === fs;
+
+  return matchDate && matchText && matchAOT && matchStatus;
+}
+
 function render() {
   const tb = document.getElementById('parcelTable');
   tb.innerHTML = '';
@@ -552,14 +675,14 @@ function render() {
     if (filter(p)) {
       tb.innerHTML += `
         <tr class="aot-${p.aot}">
-          <td>${p.track}</td>
-          <td>${p.sentAt}</td>
-          <td>${p.aot}</td>
-          <td>${p.sender}</td>
-          <td>${p.address}</td>
-          <td>${p.senderPhone}</td>
+          <td>${highlight(p.track)}</td>
+          <td>${highlight(p.sentAt)}</td>
+          <td>${highlight(p.aot)}</td>
+          <td>${highlight(p.sender)}</td>
+          <td>${highlight(p.address)}</td>
+          <td>${highlight(p.senderPhone)}</td>
           <td>${p.weight} g</td>
-          <td><span class="badge ${p.status === 'อยู่คลัง' ? 'status-in' : 'status-out'}">${p.status}</span></td>
+          <td><span class="badge ${p.status === 'อยู่คลัง' ? 'status-in' : 'status-out'}">${highlight(p.status)}</span></td>
           <td><button onclick="showTimeline('${p.track}')">ดู Flow</button></td>
         </tr>
       `;
@@ -574,18 +697,53 @@ function render() {
 
 function filter(p) {
   const fd = document.getElementById('filterDate').value;
-  const q = document.getElementById('searchInput').value.toLowerCase();
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
   const fa = document.getElementById('filterAOT').value;
   const fs = document.getElementById('filterStatus').value;
-  const matchDate = !fd || p.sentAt.startsWith(fd.split('-').reverse().join('/'));
-  return matchDate && (!q || (p.track + p.sender + p.address + p.senderPhone).toLowerCase().includes(q)) &&
-         (!fa || p.aot === fa) &&
-         (!fs || p.status === fs);
+
+  // Date match (input yyyy-mm-dd -> compare dd/mm/yyyy)
+  let matchDate = true;
+  if (fd) {
+    const parts = fd.split('-');
+    if (parts.length === 3) {
+      const ddmmyyyy = parts[2] + '/' + parts[1] + '/' + parts[0];
+      matchDate = p.sentAt.startsWith(ddmmyyyy);
+    }
+  }
+
+  // Text search across multiple fields (supports numeric-only tracking search)
+  let matchText = true;
+  if (q) {
+    const hay = [p.track, p.sender, p.address, p.senderPhone, p.aot, p.status]
+      .join(' ')
+      .toLowerCase();
+
+    const qDigits = q.replace(/\D/g, '');
+    const trackDigits = p.track.replace(/\D/g, '');
+
+    matchText = hay.includes(q) || (qDigits && trackDigits.includes(qDigits));
+  }
+
+  const matchAOT = !fa || p.aot === fa;
+  const matchStatus = !fs || p.status === fs;
+
+  return matchDate && matchText && matchAOT && matchStatus;
 }
 
 ['searchInput','filterAOT','filterStatus','filterDate'].forEach(id => {
-  document.getElementById(id).oninput = render;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.oninput = render;
+  el.onchange = render;
 });
+
+// Allow Enter key to trigger search
+const si = document.getElementById('searchInput');
+if (si) {
+  si.addEventListener('keyup', e => {
+    if (e.key === 'Enter') render();
+  });
+}
 
 function refreshPage() {
   document.getElementById('filterDate').value = '';
@@ -716,6 +874,19 @@ function showTimeline(track) {
 
 // =========================
 // BASIC TESTS
+(function runTests(){
+  console.assert(typeof refreshPage === 'function', 'refreshPage should be defined');
+  console.assert(typeof exportCSV === 'function', 'exportCSV should be defined');
+  console.assert(typeof exportPDF === 'function', 'exportPDF should be defined');
+  console.assert(parcels.length === 100, 'Should seed exactly 100 parcels');
+
+  // full tracking match should be found
+  const testTrack = parcels[0].track;
+  document.getElementById('searchInput').value = testTrack;
+  console.assert(filter(parcels[0]) === true, 'Full tracking match should return true');
+})();
+
+// =========================
 // =========================
 (function runTests(){
   console.assert(typeof refreshPage === 'function', 'refreshPage should be defined');
