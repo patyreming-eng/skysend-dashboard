@@ -95,79 +95,84 @@ let currentPage = 1;
 const pageSize = 50;
 
 // =========================
-// GOOGLE SHEET LOAD (SAFE)
+// GOOGLE SHEET LOAD
 // =========================
-// Use deployed Web App (exec) URL for CORS-safe access
-const API_URL = 'https://script.google.com/macros/s/AKfycbxfo2t2U_SbHCwvmELcFlCGpMMjoaJmq7_sxD0rnI-R/exec';
-  
-  
-  async function fetchParcels() {
-  try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-    parcels.length = 0;
-    data.forEach(p => {
-      parcels.push({
-        track: p.Tracking,
-        sentAt: p['วันที่เข้าระบบ'],
-        aot: p['สนามบิน'],
-        sender: p['ผู้ส่ง'],
-        address: p['ที่อยู่ปลายทาง'],
-        senderPhone: p['เบอร์ผู้ส่ง'],
-        weight: Number(p['น้ำหนัก (กรัม)'] || 0),
-        status: p['สถานะ'],
-        events: [] // ถ้าไม่มี timeline จาก Sheet
-      });
-    });
-    render();
-  } catch (err) {
-    console.error('Fetch failed:', err);
-    alert('ไม่สามารถดึงข้อมูลจาก Google Sheet ได้ กรุณาตรวจสอบสิทธิ์การแชร์และ URL ของ Web App');
-  }
-}
-
+const API_URL = 'https://script.google.com/macros/s/AKfycbxlhLZlHeCbjQKNUg6GFcYwEMACIN2kxxdfXjVzv2ogBcMEUE5ikDVX1qx6nXjmLT23FA/exec';
 
 async function loadFromSheet(){
   try{
     const res = await fetch(API_URL);
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try{ data = JSON.parse(text); }
+    catch(e){ console.error('Response is not JSON:', text); alert('API ตอบกลับไม่ใช่ JSON'); return; }
+
     parcels.length = 0;
     if(Array.isArray(data)){
       data.forEach(r=>{
-        if(!r) return;
-        const tracking = r.Tracking || r.tracking || r['TRACKING'] || r['Tracking No'] || r['เลขพัสดุ'];
-        if(!tracking) return;
+        if(!r || !r.Tracking) return;
         parcels.push({
-          track: String(tracking),
-          sentAt: r['วันที่เข้าระบบ'] || r['date'] || r['Date'] || '',
-          aot: r['สนามบิน'] || r['airport'] || r['AOT'] || '',
-          sender: r['ผู้ส่ง'] || r['sender'] || '',
-          address: r['ที่อยู่ปลายทาง'] || r['address'] || '',
-          senderPhone: r['เบอร์ผู้ส่ง'] || r['phone'] || '',
-          weight: Number(r['น้ำหนัก (กรัม)'] || r['weight']) || 0,
-          status: r['สถานะ'] || r['status'] || '',
+          track: String(r.Tracking),
+          sentAt: r['วันที่เข้าระบบ'] || '',
+          aot: r['สนามบิน'] || '',
+          sender: r['ผู้ส่ง'] || '',
+          address: r['ที่อยู่ปลายทาง'] || '',
+          senderPhone: r['เบอร์ผู้ส่ง'] || '',
+          weight: Number(r['น้ำหนัก (กรัม)'] || 0),
+          status: r['สถานะ'] || '',
           events: []
         });
       });
+    } else {
+      console.error('Unexpected data format:', data);
+      alert('รูปแบบข้อมูลจาก Google Sheet ไม่ถูกต้อง');
+      return;
     }
-    currentPage = 1; // reset to first page on load
+    currentPage = 1;
     render();
   }catch(e){
     console.error('Load sheet error', e);
-    render();
+    alert('ไม่สามารถเชื่อมต่อ Google Sheet ได้');
   }
 }
-// Load data from Google Sheet on first open
-// Load data from Google Sheet on first open
+
 window.addEventListener('load', loadFromSheet);
 
 // =========================
 // HELPERS
 // =========================
-function parseDate(str){ if(!str) return new Date(0); const parts=str.split(' '); if(parts.length<2) return new Date(0); const [d,t]=parts; const [day,mon,year]=d.split('/').map(Number); const [h,m]=t.split(':').map(Number); return new Date(year,mon-1,day,h,m);} 
-function formatDate(d){ const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yyyy=d.getFullYear(); const hh=String(d.getHours()).padStart(2,'0'); const mi=String(d.getMinutes()).padStart(2,'0'); return dd+'/'+mm+'/'+yyyy+' '+hh+':'+mi; }
-function escapeHtml(s){ return String(s).replace(/[&<>"]/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m])); }
-function highlight(text){ const q=(document.getElementById('searchInput').value||'').trim(); if(!q) return escapeHtml(text); try{ const qEsc=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); const re=new RegExp('('+qEsc+')','ig'); return escapeHtml(String(text)).replace(re,'<span class="hl">$1</span>'); }catch(e){ return escapeHtml(text); }}
+function parseDate(str){
+  if(!str) return new Date(0);
+  const parts=str.split(' ');
+  if(parts.length<2) return new Date(0);
+  const d=parts[0], t=parts[1];
+  const a=d.split('/').map(Number);
+  const b=t.split(':').map(Number);
+  if(a.length!==3||b.length!==2) return new Date(0);
+  return new Date(a[2],a[1]-1,a[0],b[0],b[1]);
+}
+function formatDate(d){
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const yyyy=d.getFullYear();
+  const hh=String(d.getHours()).padStart(2,'0');
+  const mi=String(d.getMinutes()).padStart(2,'0');
+  return dd+'/'+mm+'/'+yyyy+' '+hh+':'+mi;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[m]));
+}
+function highlight(text){
+  const q=(document.getElementById('searchInput').value||'').trim();
+  if(!q) return escapeHtml(text);
+  try{
+    const qEsc=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const re=new RegExp('('+qEsc+')','ig');
+    return escapeHtml(String(text)).replace(re,'<span class="hl">$1</span>');
+  }catch(e){
+    return escapeHtml(text);
+  }
+}
 
 // =========================
 // PAGINATION
@@ -175,7 +180,7 @@ function highlight(text){ const q=(document.getElementById('searchInput').value|
 function paginate(arr){ const start=(currentPage-1)*pageSize; return arr.slice(start, start+pageSize); }
 function renderPagination(total){
   const el=document.getElementById('pagination');
-  if(!el) return; // guard against null
+  if(!el) return;
   const pageCount=Math.max(1, Math.ceil(total/pageSize));
   let html='';
   for(let i=1;i<=pageCount;i++){
@@ -188,19 +193,54 @@ function gotoPage(p){ currentPage=p; render(); }
 // =========================
 // FILTER / SORT / RENDER
 // =========================
-function filter(p){ if(!p) return false; const fd=document.getElementById('filterDate').value; const q=(document.getElementById('searchInput').value||'').toLowerCase().trim(); const fa=document.getElementById('filterAOT').value; const fs=document.getElementById('filterStatus').value; let matchDate=true; if(fd&&p.sentAt){ const parts=fd.split('-'); if(parts.length===3){ const ddmmyyyy=parts[2]+'/'+parts[1]+'/'+parts[0]; matchDate=p.sentAt.startsWith(ddmmyyyy); }} let matchText=true; if(q){ const hay=[p.track,p.sender,p.address,p.senderPhone,p.aot,p.status].join(' ').toLowerCase(); matchText=hay.includes(q); } const matchAOT=!fa||p.aot===fa; const matchStatus=!fs||p.status===fs; return matchDate&&matchText&&matchAOT&&matchStatus; }
+function filterRow(p){
+  if(!p) return false;
+  const fd=document.getElementById('filterDate').value;
+  const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
+  const fa=document.getElementById('filterAOT').value;
+  const fs=document.getElementById('filterStatus').value;
+  let matchDate=true;
+  if(fd&&p.sentAt){
+    const parts=fd.split('-');
+    if(parts.length===3){
+      const ddmmyyyy=parts[2]+'/'+parts[1]+'/'+parts[0];
+      matchDate=p.sentAt.startsWith(ddmmyyyy);
+    }
+  }
+  let matchText=true;
+  if(q){
+    const hay=[p.track,p.sender,p.address,p.senderPhone,p.aot,p.status].join(' ').toLowerCase();
+    matchText=hay.includes(q);
+  }
+  const matchAOT=!fa||p.aot===fa;
+  const matchStatus=!fs||p.status===fs;
+  return matchDate&&matchText&&matchAOT&&matchStatus;
+}
 
-function sortBy(key){ sortState.key=key; sortState.asc = key==='sentAt' ? false : !sortState.asc; parcels.sort((a,b)=>{ let va=a[key], vb=b[key]; if(key==='sentAt'){ va=parseDate(va); vb=parseDate(vb); return sortState.asc?va-vb:vb-va; } if(typeof va==='number') return sortState.asc?va-vb:vb-va; return sortState.asc?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va)); }); currentPage=1; render(); }
+function sortBy(key){
+  sortState.key=key;
+  sortState.asc = key==='sentAt' ? false : !sortState.asc;
+  parcels.sort((a,b)=>{
+    let va=a[key], vb=b[key];
+    if(key==='sentAt'){
+      va=parseDate(va); vb=parseDate(vb);
+      return sortState.asc?va-vb:vb-va;
+    }
+    if(typeof va==='number') return sortState.asc?va-vb:vb-va;
+    return sortState.asc?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));
+  });
+  currentPage=1; render();
+}
 
 function render(){
   const tb=document.getElementById('parcelTable');
-  if(!tb) return; // guard
+  if(!tb) return;
   tb.innerHTML='';
   let sin=0,sout=0;
   const qRaw=(document.getElementById('searchInput').value||'').trim().toLowerCase();
   const rows=[];
   parcels.forEach(p=>{
-    if(filter(p)){
+    if(filterRow(p)){
       const isFullMatch = qRaw && p.track && p.track.toLowerCase()===qRaw;
       rows.push({p,isFullMatch});
     }
@@ -208,7 +248,6 @@ function render(){
   });
   rows.sort((a,b)=> (a.isFullMatch===b.isFullMatch)?0:(a.isFullMatch?-1:1));
 
-  // paginate
   const pageRows = paginate(rows);
   pageRows.forEach(({p,isFullMatch})=>{
     tb.innerHTML += '<tr class="'+(isFullMatch?'full-match':'')+'">'
@@ -224,12 +263,10 @@ function render(){
       +'</tr>';
   });
 
-  // counters
   document.getElementById('sumAll').innerText=parcels.length;
   document.getElementById('sumIn').innerText=sin;
   document.getElementById('sumOut').innerText=sout;
 
-  // pagination controls
   renderPagination(rows.length);
 }
 
@@ -244,16 +281,14 @@ function refreshPage(){
   document.getElementById('filterAOT').value='';
   document.getElementById('filterStatus').value='';
   sortState={key:'sentAt',asc:false};
-  currentPage=1;
-  render();
+  currentPage=1; render();
 }
 function quickFilter(status){
   document.getElementById('filterStatus').value=status;
   document.getElementById('searchInput').value='';
   document.getElementById('filterAOT').value='';
   document.getElementById('filterDate').value='';
-  currentPage=1;
-  render();
+  currentPage=1; render();
 }
 
 // =========================
@@ -294,7 +329,7 @@ function exportCSV(){
   const headers=['Tracking','วันที่เข้าระบบ','สนามบิน','ผู้ส่ง','ที่อยู่ปลายทาง','เบอร์ผู้ส่ง','น้ำหนัก(g)','สถานะ'];
   let csv=headers.join(',')+'\n';
   parcels.forEach(p=>{
-    if(!filter(p)) return;
+    if(!filterRow(p)) return;
     const row=[p.track,p.sentAt,p.aot,p.sender,p.address.replace(/,/g,' '),p.senderPhone,p.weight,p.status];
     csv += row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')+'\n';
   });
@@ -306,23 +341,26 @@ function exportCSV(){
 function exportPDF(){ alert('PDF export preview: ใช้งานได้หลังเชื่อมเต็มรูปแบบ'); }
 
 // =========================
-// FLOW
+// FLOW (FIXED STRING ESCAPING)
 // =========================
 function showTimeline(track){
   const p=parcels.find(x=>x&&x.track===track);
   if(!p){ alert('ไม่พบข้อมูลพัสดุ'); return; }
   const dialog=document.getElementById('timelineDialog');
-  dialog.innerHTML = '<h3>📦 Flow Diagram : '+escapeHtml(track)+'</h3><p>(โหมดพรีวิว)</p><button type="button" onclick="document.getElementById(\"timelineDialog\").close()">ปิด</button>';
+  dialog.innerHTML = `<h3>📦 Flow Diagram : ${escapeHtml(track)}</h3>
+    <p>(โหมดพรีวิว)</p>
+    <button type="button" onclick="document.getElementById('timelineDialog').close()">ปิด</button>`;
   dialog.showModal();
 }
 
 // =========================
-// BASIC TESTS
+// BASIC TESTS (ADDED)
 // =========================
 (function runTests(){
   console.assert(document.getElementById('pagination')!==null,'pagination element must exist');
   console.assert(typeof render==='function','render should be defined');
   console.assert(typeof renderPagination==='function','renderPagination should be defined');
+  console.assert(typeof loadFromSheet==='function','loadFromSheet should be defined');
 })();
 </script>
 </body>
