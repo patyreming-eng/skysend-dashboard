@@ -343,6 +343,27 @@
     <div class="card" onclick="quickFilter('ส่งออกแล้ว')"><h2>ส่งออกแล้ว</h2><p id="sumOut">0</p></div>
   </div>
 
+  <form id="addForm" class="toolbar" onsubmit="return addParcelFromForm()">
+    <input id="fTrack" placeholder="Tracking" required />
+    <input id="fSender" placeholder="ผู้ส่ง" required />
+    <input id="fAddress" placeholder="ที่อยู่ปลายทาง" required />
+    <input id="fPhone" placeholder="เบอร์ผู้ส่ง" required />
+    <select id="fAOT" required>
+      <option value="">สนามบิน</option>
+      <option value="BKK">BKK</option>
+      <option value="DMK">DMK</option>
+      <option value="CNX">CNX</option>
+      <option value="HKT">HKT</option>
+      <option value="HDY">HDY</option>
+      <option value="CEI">CEI</option>
+    </select>
+    <select id="fStatus" required>
+      <option value="อยู่คลัง">อยู่คลัง</option>
+      <option value="ส่งออกแล้ว">ส่งออกแล้ว</option>
+    </select>
+    <button type="submit">➕ บันทึกพัสดุ</button>
+  </form>
+
   <div class="toolbar">
     <input id="searchInput" class="search-input" placeholder="ค้นหา Tracking / ชื่อ / ที่อยู่ / เบอร์" />
     <input type="date" id="filterDate" />
@@ -470,44 +491,35 @@ function dateFromTracking(track) {
 }
 
 // =========================
-// SEED DATA (100 PARCELS)
+// LOAD FROM GOOGLE SHEET (PREVIEW MODE)
 // =========================
-parcels.length = 0;
+const API_URL = 'https://script.google.com/macros/s/AKfycbx6VIjS1NfmYc6QLLUk99j1Jneow8n0B4WLL_b1Hve_Wv6Ftfvof201X_XIx7P3AKJTTA/exec';
 
-for (let i = 0; i < 100; i++) {
-  const trackId = 'SKY' + (240001 + i);
-  const baseDate = dateFromTracking(trackId);
-  const baseTime = formatDate(baseDate);
-
-  const senderName = 'นาย' + thaiFirstNames[i % thaiFirstNames.length] + ' ' + thaiLastNames[i % thaiLastNames.length];
-  const addrPick = thaiAddressMap[i % thaiAddressMap.length];
-  const street = thaiStreets[i % thaiStreets.length];
-
-  let address = '';
-  if (addrPick.prov === 'กรุงเทพมหานคร') {
-    address = `บ้านเลขที่ ${i + 1} ถนน${street} ${addrPick.subdist} ${addrPick.dist} ${addrPick.prov} ${addrPick.zip}`;
-  } else {
-    address = `บ้านเลขที่ ${i + 1} ถนน${street} ${addrPick.subdist} ${addrPick.dist} จ.${addrPick.prov} ${addrPick.zip}`;
+async function loadFromSheet(){
+  try{
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    parcels.length = 0;
+    data.forEach(r=>{
+      parcels.push({
+        track: r.Tracking,
+        sentAt: r['วันที่เข้าระบบ'],
+        aot: r['สนามบิน'],
+        sender: r['ผู้ส่ง'],
+        address: r['ที่อยู่ปลายทาง'],
+        senderPhone: r['เบอร์ผู้ส่ง'],
+        weight: Number(r['น้ำหนัก (กรัม)']) || 0,
+        status: r['สถานะ'],
+        events: []
+      });
+    });
+    render();
+  }catch(e){
+    console.error('Load sheet error', e);
   }
-
-  const events = [
-    { point: 'รับจากเครื่อง Kiosk', by: 'เจ้าหน้าที่ Kiosk ' + ((i % 4) + 1), phone: '08' + String(10000000 + i).padStart(8, '0'), time: baseTime },
-    { point: 'คัดแยกคลัง', by: 'พนักงานคลัง ' + ((i % 3) + 1), phone: '08' + String(20000000 + i).padStart(8, '0'), time: addMinutes(baseDate, 45) },
-    { point: 'เตรียมส่งออก', by: 'เจ้าหน้าที่ขนส่ง ' + ((i % 2) + 1), phone: '08' + String(30000000 + i).padStart(8, '0'), time: addMinutes(baseDate, 120) }
-  ];
-
-  parcels.push({
-    track: trackId,
-    sentAt: baseTime,
-    aot: AOTS[i % AOTS.length],
-    sender: senderName,
-    address: address,
-    senderPhone: '08' + String(40000000 + i).padStart(8, '0'),
-    weight: 300 + (i * 7) % 700,
-    status: i % 2 === 0 ? 'อยู่คลัง' : 'ส่งออกแล้ว',
-    events
-  });
 }
+
+window.addEventListener('load', loadFromSheet);
 
 // =========================
 // SORTING
@@ -766,6 +778,39 @@ function quickFilter(status){
   render();
   window.scrollTo({ top: document.querySelector('table').offsetTop - 80, behavior: 'smooth' });
 }
+
+// =========================
+// LOCAL DB (localStorage)
+// =========================
+function saveDB(){ localStorage.setItem('skysend_parcels', JSON.stringify(parcels)); }
+function loadDB(){
+  const raw = localStorage.getItem('skysend_parcels');
+  if(raw){
+    try{ const arr = JSON.parse(raw); if(Array.isArray(arr) && arr.length){ parcels.length=0; arr.forEach(x=>parcels.push(x)); } }
+    catch(e){}
+  }
+}
+
+function addParcelFromForm(){
+  const p = {
+    track: fTrack.value.trim(),
+    sentAt: formatDate(new Date()),
+    aot: fAOT.value,
+    sender: fSender.value.trim(),
+    address: fAddress.value.trim(),
+    senderPhone: fPhone.value.trim(),
+    weight: 500,
+    status: fStatus.value,
+    events: []
+  };
+  parcels.unshift(p);
+  saveDB();
+  render();
+  document.getElementById('addForm').reset();
+  return false;
+}
+
+loadDB();
 
 // =========================
 // EXPORTS
