@@ -880,10 +880,13 @@ function showTimeline(track) {
   console.assert(typeof exportPDF === 'function', 'exportPDF should be defined');
   console.assert(parcels.length === 100, 'Should seed exactly 100 parcels');
 
-  // full tracking match should be found
+  // full tracking match should be found (do NOT persist search value to UI)
   const testTrack = parcels[0].track;
-  document.getElementById('searchInput').value = testTrack;
+  const input = document.getElementById('searchInput');
+  const prev = input.value;
+  input.value = testTrack;
   console.assert(filter(parcels[0]) === true, 'Full tracking match should return true');
+  input.value = prev; // restore
 })();
 
 // =========================
