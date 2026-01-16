@@ -5,38 +5,337 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SKYSEND Backoffice</title>
   <style>
-    :root{--bg:#f0f7ff;--primary:#0ea5e9;--primary-dark:#0284c7;--card:#ffffff;--muted:#64748b;--border:#e2e8f0;--success:#16a34a;--danger:#dc2626;--radius:14px}
+    :root{
+      /* SKYSEND Brand Palette */
+      --bg:#f0f7ff;
+      --primary:#0ea5e9;          /* Sky Blue */
+      --primary-dark:#0284c7;    /* Deep Sky Blue */
+      --card:#ffffff;
+      --muted:#64748b;
+      --border:#e2e8f0;
+      --success:#16a34a;
+      --danger:#dc2626;
+      --radius:14px;
+    }
+
     *{box-sizing:border-box}
-    body{font-family:Segoe UI,Tahoma,sans-serif;background:linear-gradient(180deg,#eef1ff 0%,var(--bg) 200px);margin:0;color:#111827}
-    header{background:linear-gradient(135deg,var(--primary),#38bdf8);color:#fff;padding:16px 24px;box-shadow:0 4px 20px rgba(14,165,233,.35);position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between}
-    header h1{margin:0;font-size:22px;letter-spacing:.3px}
+
+    body{
+      font-family:Segoe UI, Tahoma, sans-serif;
+      background:linear-gradient(180deg,#eef1ff 0%, var(--bg) 200px);
+      margin:0;
+      color:#111827;
+    }
+
+    header{
+      background:linear-gradient(135deg,var(--primary),#38bdf8);
+      color:#fff;
+      padding:16px 24px;
+      box-shadow:0 4px 20px rgba(14,165,233,.35);
+      position:sticky;
+      top:0;
+      z-index:10;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    header h1{
+      margin:0;
+      font-size:22px;
+      letter-spacing:.3px;
+    }
+
     .container{padding:24px;max-width:1400px;margin:0 auto}
-    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:24px}
-    .card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 10px 25px rgba(0,0,0,.08);cursor:pointer}
-    .card h2{margin:0;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-    .card p{font-size:32px;margin:10px 0 0;color:var(--primary);font-weight:700}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;background:var(--card);padding:14px;border-radius:var(--radius);box-shadow:0 6px 20px rgba(0,0,0,.08)}
-    .search-input{flex:1;min-width:320px;font-size:16px;padding:12px 14px;border:2px solid var(--primary);box-shadow:0 0 0 4px rgba(14,165,233,.15)}
-    .toolbar input,.toolbar select,.toolbar button{padding:10px 12px;border-radius:10px;border:1px solid var(--border);font-size:14px;outline:none;background:#fff}
-    .toolbar button{background:var(--primary);color:#fff;border:none;cursor:pointer;font-weight:600}
-    .toolbar button.secondary{background:#9ca3af}
-    table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,.08)}
-    thead{background:#f9fafb}
-    th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border)}
-    th{font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:#f9fafb;z-index:5}
-    tbody tr:hover{background:#e0f2fe}
-    tr:nth-child(even){background:#f7f9ff} tr:nth-child(odd){background:#ffffff}
-    .full-match{background:#bae6fd !important;border-left:6px solid var(--primary)}
+
+    /* KPI CARDS */
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:20px;
+      margin-bottom:24px;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:20px;
+      box-shadow:0 10px 25px rgba(0,0,0,.08);
+      transition:transform .15s ease, box-shadow .15s ease;
+      position:relative;
+      overflow:hidden;
+      cursor:pointer;
+    }
+
+    .card::after{
+      content:"";
+      position:absolute;
+      inset:auto 0 0 0;
+      height:4px;
+      background:linear-gradient(90deg,var(--primary),#8f9cf5);
+    }
+
+    .card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 16px 40px rgba(0,0,0,.12);
+    }
+
+    .card h2{
+      margin:0;
+      font-size:14px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .card p{
+      font-size:32px;
+      margin:10px 0 0;
+      color:var(--primary);
+      font-weight:700;
+    }
+
+    /* TOOLBAR */
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:16px;
+      align-items:center;
+      background:var(--card);
+      padding:14px;
+      border-radius:var(--radius);
+      box-shadow:0 6px 20px rgba(0,0,0,.08);
+    }
+
+    /* Make search box more visible */
+    .search-input{
+      flex:1;
+      min-width:320px;
+      font-size:16px;
+      padding:12px 14px;
+      border:2px solid var(--primary);
+      box-shadow:0 0 0 4px rgba(14,165,233,.15);
+    }
+
+    .toolbar input,
+    .toolbar select,
+    .toolbar button{
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      font-size:14px;
+      outline:none;
+      background:#fff;
+      transition:border .15s ease, box-shadow .15s ease, transform .05s ease;
+    }
+
+    .toolbar input:focus,
+    .toolbar select:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 3px rgba(102,126,234,.2);
+    }
+
+    .toolbar button{
+      background:var(--primary);
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-weight:600;
+    }
+
+    .toolbar button:hover{
+      background:var(--primary-dark);
+    }
+
+    .toolbar button:active{
+      transform:scale(.97);
+    }
+
+    .toolbar button.secondary{
+      background:#9ca3af;
+    }
+
+    .toolbar button.secondary:hover{
+      background:#6b7280;
+    }
+
+    /* TABLE */
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      background:var(--card);
+      border-radius:var(--radius);
+      overflow:hidden;
+      box-shadow:0 10px 25px rgba(0,0,0,.08);
+      margin-top:0; /* header spacing handled by container now */
+    }
+
+    thead{
+      background:#f9fafb;
+    }
+
+    th,td{
+      padding:12px 14px;
+      text-align:left;
+      border-bottom:1px solid var(--border);
+    }
+
+    th{
+      font-weight:600;
+      cursor:pointer;
+      user-select:none;
+      position:sticky;
+      top:0; /* stick to top of table container, not under the page header */
+      background:#f9fafb;
+      z-index:5;
+    }
+
+    th span{
+      font-size:12px;
+      color:var(--muted);
+      margin-left:4px;
+    }
+
+    tbody tr:hover{
+      background:#e0f2fe;
+    }
+
+    tr:nth-child(even){background:#f7f9ff}
+    tr:nth-child(odd){background:#ffffff}
+
+    /* FULL MATCH ROW */
+    .full-match{
+      background:#bae6fd !important;
+      border-left:6px solid var(--primary);
+    }
+
+
+    /* HIGHLIGHT */
     .hl{background:#fde047;color:#111827;padding:0 2px;border-radius:4px}
-    .badge{padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;display:inline-block}
-    .status-in{background:#e8f5e9;color:var(--success)} .status-out{background:#ffebee;color:var(--danger)}
-    .table-wrap{overflow:auto;max-height:70vh;position:relative}
-    #pagination button{margin:0 4px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer}
-    #pagination button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+    /* BADGES */
+    .badge{
+      padding:4px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      display:inline-block;
+    }
+
+    .status-in{background:#e8f5e9;color:var(--success)}
+    .status-out{background:#ffebee;color:var(--danger)}
+
+    /* AIRPORT COLORS */
+    .aot-BKK{background:#e0f2fe}
+    .aot-DMK{background:#f0f9ff}
+    .aot-CNX{background:#ecfeff}
+    .aot-HKT{background:#fff7ed}
+    .aot-HDY{background:#f0fdf4}
+    .aot-CEI{background:#eef2ff}
+
+    /* FLOW BUTTON */
+    td button{
+      padding:6px 12px;
+      border-radius:999px;
+      border:none;
+      background:#eef2ff;
+      color:var(--primary);
+      font-weight:600;
+      cursor:pointer;
+      transition:background .15s ease, transform .05s ease;
+    }
+
+    td button:hover{
+      background:#dbe4ff;
+    }
+
+    td button:active{
+      transform:scale(.95);
+    }
+
+    /* DIALOG */
+    dialog{
+      border:none;
+      border-radius:var(--radius);
+      padding:24px;
+      box-shadow:0 20px 50px rgba(0,0,0,.3);
+      max-width:420px;
+      width:90%;
+    }
+
+    dialog h3{margin-top:0}
+
+    dialog button{
+      margin-top:10px;
+      background:var(--primary);
+      color:#fff;
+      border:none;
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:600;
+    }
+
+    dialog button:hover{
+      background:var(--primary-dark);
+    }
+
+    /* USER BOX */
+    .user-box{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      background:rgba(255,255,255,.15);
+      padding:6px 12px;
+      border-radius:999px;
+      backdrop-filter:blur(6px);
+    }
+
+    .avatar{
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      background:#fff;
+      color:var(--primary);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+    }
+
+    .user-info{line-height:1.1}
+    .user-name{font-size:13px;font-weight:700}
+    .user-role{font-size:11px;opacity:.9}
+
+    @media (max-width: 768px){
+      th{top:120px}
+      .card p{font-size:26px}
+    }
+
+    .table-wrap{
+      overflow:auto;
+      max-height:70vh;
+      position:relative; /* create sticky context for table header */
+    }
+      .card p{font-size:26px}
+    }
   </style>
 </head>
 <body>
-<header><h1>✈️ SKYSEND Backoffice Dashboard</h1></header>
+
+<header>
+  <h1>✈️ SKYSEND Backoffice Dashboard</h1>
+  <div class="user-box">
+    <div class="avatar">A</div>
+    <div class="user-info">
+      <div class="user-name">Admin Operator</div>
+      <div class="user-role">System Control</div>
+    </div>
+  </div>
+</header>
+
 <div class="container">
   <div class="cards">
     <div class="card" onclick="quickFilter('')"><h2>ทั้งหมด</h2><p id="sumAll">0</p></div>
@@ -44,41 +343,43 @@
     <div class="card" onclick="quickFilter('ส่งออกแล้ว')"><h2>ส่งออกแล้ว</h2><p id="sumOut">0</p></div>
   </div>
 
-  <form id="addForm" class="toolbar" onsubmit="return addParcelFromForm()">
-    <input id="fTrack" placeholder="Tracking" required />
-    <input id="fSender" placeholder="ผู้ส่ง" required />
-    <input id="fAddress" placeholder="ที่อยู่ปลายทาง" required />
-    <input id="fPhone" placeholder="เบอร์ผู้ส่ง" required />
-    <select id="fAOT" required>
-      <option value="">สนามบิน</option><option value="BKK">BKK</option><option value="DMK">DMK</option><option value="CNX">CNX</option><option value="HKT">HKT</option><option value="HDY">HDY</option><option value="CEI">CEI</option>
-    </select>
-    <select id="fStatus" required><option value="อยู่คลัง">อยู่คลัง</option><option value="ส่งออกแล้ว">ส่งออกแล้ว</option></select>
-    <button type="submit">➕ บันทึกพัสดุ</button>
-  </form>
-
   <div class="toolbar">
     <input id="searchInput" class="search-input" placeholder="ค้นหา Tracking / ชื่อ / ที่อยู่ / เบอร์" />
     <input type="date" id="filterDate" />
-    <select id="filterAOT"><option value="">ทุกสนามบิน</option><option value="BKK">BKK</option><option value="DMK">DMK</option><option value="CNX">CNX</option><option value="HKT">HKT</option><option value="HDY">HDY</option><option value="CEI">CEI</option></select>
-    <select id="filterStatus"><option value="">ทุกสถานะ</option><option value="อยู่คลัง">อยู่คลัง</option><option value="ส่งออกแล้ว">ส่งออกแล้ว</option></select>
-    <button type="button" onclick="exportCSV()">📄 Export CSV</button>
-    <button type="button" class="secondary" onclick="exportPDF()">📦 Export PDF ตามสนามบิน</button>
-    <button type="button" class="secondary" onclick="refreshPage()">🔄 Refresh</button>
+    <select id="filterAOT">
+      <option value="">ทุกสนามบิน</option>
+      <option value="BKK">สุวรรณภูมิ (BKK)</option>
+      <option value="DMK">ดอนเมือง (DMK)</option>
+      <option value="CNX">เชียงใหม่ (CNX)</option>
+      <option value="HKT">ภูเก็ต (HKT)</option>
+      <option value="HDY">หาดใหญ่ (HDY)</option>
+      <option value="CEI">เชียงราย (CEI)</option>
+    </select>
+    <select id="filterStatus">
+      <option value="">ทุกสถานะ</option>
+      <option value="อยู่คลัง">อยู่คลัง</option>
+      <option value="ส่งออกแล้ว">ส่งออกแล้ว</option>
+    </select>
+
+    <button onclick="exportCSV()">📄 Export CSV</button>
+    <button class="secondary" onclick="exportPDF()">📦 Export PDF ตามสนามบิน</button>
+    <button class="secondary" onclick="refreshPage()">🔄 Refresh</button>
   </div>
 
-  <div id="pagination"></div>
   <div class="table-wrap"><table>
-    <thead><tr>
-      <th onclick="sortBy('track')">Tracking</th>
-      <th onclick="sortBy('sentAt')">วันที่เข้าระบบ</th>
-      <th onclick="sortBy('aot')">สนามบิน</th>
-      <th onclick="sortBy('sender')">ผู้ส่ง</th>
-      <th onclick="sortBy('address')">ที่อยู่ปลายทาง</th>
-      <th onclick="sortBy('senderPhone')">เบอร์ผู้ส่ง</th>
-      <th onclick="sortBy('weight')">น้ำหนัก</th>
-      <th onclick="sortBy('status')">สถานะ</th>
-      <th>Flow</th>
-    </tr></thead>
+    <thead>
+      <tr>
+        <th onclick="sortBy('track')">Tracking<span id="s-track"></span></th>
+        <th onclick="sortBy('sentAt')">วันที่เข้าระบบ<span id="s-sentAt"></span></th>
+        <th onclick="sortBy('aot')">สนามบิน<span id="s-aot"></span></th>
+        <th onclick="sortBy('sender')">ผู้ส่ง<span id="s-sender"></span></th>
+        <th onclick="sortBy('address')">ที่อยู่ปลายทาง<span id="s-address"></span></th>
+        <th onclick="sortBy('senderPhone')">เบอร์ผู้ส่ง<span id="s-senderPhone"></span></th>
+        <th onclick="sortBy('weight')">น้ำหนัก<span id="s-weight"></span></th>
+        <th onclick="sortBy('status')">สถานะ<span id="s-status"></span></th>
+        <th>Flow</th>
+      </tr>
+    </thead>
     <tbody id="parcelTable"></tbody>
   </table></div>
 </div>
@@ -87,281 +388,519 @@
 
 <script>
 // =========================
-// STATE
+// GLOBAL STATE
 // =========================
 const parcels = [];
+const AOTS = ['BKK','DMK','CNX','HKT','HDY','CEI'];
+
 let sortState = { key: 'sentAt', asc: false };
-let currentPage = 1;
-const pageSize = 50;
+let _initialSortDone = false;
 
 // =========================
-// GOOGLE SHEET LOAD
+// MASTER DATA
 // =========================
-const API_URL = 'https://script.google.com/macros/s/AKfycbxlhLZlHeCbjQKNUg6GFcYwEMACIN2kxxdfXjVzv2ogBcMEUE5ikDVX1qx6nXjmLT23FA/exec';
+const thaiFirstNames = ['ธนพล','พิมพ์ชนก','สมศักดิ์','กานต์ชนก','วรพล','ชลธิชา','อภิชาติ','ลลิตา','ปรีชา','ธัญญา','สุพจน์','อรอนงค์','กิตติพงษ์','ศิริพร','มนัส','วราภรณ์','อนุชา','พัชรี','ธีรพงษ์','กมลชนก','สันติ','ปวีณา','อำนาจ','นฤมล','สุชาติ','รัตนา','ไพศาล','เบญจมาศ','ณัฐพล','ปณิธาน','จิราภรณ์','วาสนา','เดชาธร','อัจฉรา','พิชิต','ภัทรวดี','ชาญชัย','ณัฐกานต์','กุลธิดา','วุฒิชัย','ศศิธร','ธวัชชัย','ปรียานุช','จารุวรรณ','ปกรณ์','อิสรีย์','ธีรศักดิ์','ดวงใจ','ศุภชัย','ขวัญฤดี'];
 
-async function loadFromSheet(){
-  try{
-    const res = await fetch(API_URL);
-    const text = await res.text();
-    let data;
-    try{ data = JSON.parse(text); }
-    catch(e){ console.error('Response is not JSON:', text); alert('API ตอบกลับไม่ใช่ JSON'); return; }
+const thaiLastNames = ['ศรีชัย','วัฒนา','บุญมา','พรหมมา','อินทร์ทอง','มณีรัตน์','แก้วคำ','สายทอง','คำดี','สุขใจ','แสนดี','ใจบุญ','วงศ์ชัย','แก้วใส','รุ่งเรือง','พูลผล','จันทร์ดี','แดงดี','แสงทอง','วิเศษ','สุขสบาย','แสนสุข','กล้าหาญ','ทองแท้','มีชัย','ศรีสุข','อินทร','วงษ์ดี','เจริญผล','พูนทรัพย์','ศักดิ์ศรี','วัฒนกุล','ทองหล่อ','นาคะ','สุวรรณ','ประเสริฐ','กิตติคุณ','รัตนวงศ์','บุญส่ง','โชติช่วง','ธรรมรักษ์','ศุภกิจ','เพิ่มพูน','วิริยะ','สุนทร','จงเจริญ','นิลวรรณ','คำแปง','พงษ์ดี','แสงใส'];
 
-    parcels.length = 0;
-    if(Array.isArray(data)){
-      data.forEach(r=>{
-        if(!r || !r.Tracking) return;
-        parcels.push({
-          track: String(r.Tracking),
-          sentAt: r['วันที่เข้าระบบ'] || '',
-          aot: r['สนามบิน'] || '',
-          sender: r['ผู้ส่ง'] || '',
-          address: r['ที่อยู่ปลายทาง'] || '',
-          senderPhone: r['เบอร์ผู้ส่ง'] || '',
-          weight: Number(r['น้ำหนัก (กรัม)'] || 0),
-          status: r['สถานะ'] || '',
-          events: []
-        });
-      });
+const thaiAddressMap = [
+  {prov:'กรุงเทพมหานคร',dist:'เขตบางรัก',subdist:'แขวงบางรัก',zip:'10500'},
+  {prov:'กรุงเทพมหานคร',dist:'เขตปทุมวัน',subdist:'แขวงปทุมวัน',zip:'10330'},
+  {prov:'กรุงเทพมหานคร',dist:'เขตจตุจักร',subdist:'แขวงลาดยาว',zip:'10900'},
+  {prov:'กรุงเทพมหานคร',dist:'เขตบางเขน',subdist:'แขวงอนุสาวรีย์',zip:'10220'},
+  {prov:'เชียงใหม่',dist:'อำเภอเมืองเชียงใหม่',subdist:'ตำบลสุเทพ',zip:'50200'},
+  {prov:'เชียงราย',dist:'อำเภอเมืองเชียงราย',subdist:'ตำบลรอบเวียง',zip:'57000'},
+  {prov:'ขอนแก่น',dist:'อำเภอเมืองขอนแก่น',subdist:'ตำบลในเมือง',zip:'40000'},
+  {prov:'นครราชสีมา',dist:'อำเภอเมืองนครราชสีมา',subdist:'ตำบลในเมือง',zip:'30000'},
+  {prov:'ชลบุรี',dist:'อำเภอศรีราชา',subdist:'ตำบลสุรศักดิ์',zip:'20110'},
+  {prov:'ภูเก็ต',dist:'อำเภอเมืองภูเก็ต',subdist:'ตำบลตลาดใหญ่',zip:'83000'}
+];
+
+const thaiStreets = ['สุขุมวิท','พหลโยธิน','วิภาวดีรังสิต','มิตรภาพ','เจริญกรุง','นิมมานเหมินท์','ราชดำเนิน','เพชรเกษม','ศรีนครินทร์','ลาดพร้าว'];
+
+// =========================
+// DATE HELPERS
+// =========================
+function parseDate(str) {
+  const [d, t] = str.split(' ');
+  const [day, mon, year] = d.split('/').map(Number);
+  const [h, m] = t.split(':').map(Number);
+  return new Date(year, mon - 1, day, h, m);
+}
+
+function formatDate(d) {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+}
+
+function addMinutes(dateObj, minutes) {
+  const d = new Date(dateObj.getTime());
+  d.setMinutes(d.getMinutes() + minutes);
+  return formatDate(d);
+}
+
+// =========================
+// DETERMINISTIC DATE 1-15 (LOCKED BY TRACKING)
+// =========================
+const now = new Date();
+
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function dateFromTracking(track) {
+  const seed = hashCode(track);
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const day = 1 + (seed % 15);
+  const hour = seed % 24;
+  const minute = Math.floor(seed / 24) % 60;
+
+  return new Date(year, month, day, hour, minute, 0);
+}
+
+// =========================
+// SEED DATA (100 PARCELS)
+// =========================
+parcels.length = 0;
+
+for (let i = 0; i < 100; i++) {
+  const trackId = 'SKY' + (240001 + i);
+  const baseDate = dateFromTracking(trackId);
+  const baseTime = formatDate(baseDate);
+
+  const senderName = 'นาย' + thaiFirstNames[i % thaiFirstNames.length] + ' ' + thaiLastNames[i % thaiLastNames.length];
+  const addrPick = thaiAddressMap[i % thaiAddressMap.length];
+  const street = thaiStreets[i % thaiStreets.length];
+
+  let address = '';
+  if (addrPick.prov === 'กรุงเทพมหานคร') {
+    address = `บ้านเลขที่ ${i + 1} ถนน${street} ${addrPick.subdist} ${addrPick.dist} ${addrPick.prov} ${addrPick.zip}`;
+  } else {
+    address = `บ้านเลขที่ ${i + 1} ถนน${street} ${addrPick.subdist} ${addrPick.dist} จ.${addrPick.prov} ${addrPick.zip}`;
+  }
+
+  const events = [
+    { point: 'รับจากเครื่อง Kiosk', by: 'เจ้าหน้าที่ Kiosk ' + ((i % 4) + 1), phone: '08' + String(10000000 + i).padStart(8, '0'), time: baseTime },
+    { point: 'คัดแยกคลัง', by: 'พนักงานคลัง ' + ((i % 3) + 1), phone: '08' + String(20000000 + i).padStart(8, '0'), time: addMinutes(baseDate, 45) },
+    { point: 'เตรียมส่งออก', by: 'เจ้าหน้าที่ขนส่ง ' + ((i % 2) + 1), phone: '08' + String(30000000 + i).padStart(8, '0'), time: addMinutes(baseDate, 120) }
+  ];
+
+  parcels.push({
+    track: trackId,
+    sentAt: baseTime,
+    aot: AOTS[i % AOTS.length],
+    sender: senderName,
+    address: address,
+    senderPhone: '08' + String(40000000 + i).padStart(8, '0'),
+    weight: 300 + (i * 7) % 700,
+    status: i % 2 === 0 ? 'อยู่คลัง' : 'ส่งออกแล้ว',
+    events
+  });
+}
+
+// =========================
+// SORTING
+// =========================
+function updateSortIcons() {
+  ['track','sentAt','aot','sender','address','senderPhone','weight','status'].forEach(k => {
+    const el = document.getElementById('s-' + k);
+    if (!el) return;
+    if (sortState.key === k) {
+      el.textContent = sortState.asc ? ' ▲' : ' ▼';
     } else {
-      console.error('Unexpected data format:', data);
-      alert('รูปแบบข้อมูลจาก Google Sheet ไม่ถูกต้อง');
-      return;
+      el.textContent = '';
     }
-    currentPage = 1;
-    render();
-  }catch(e){
-    console.error('Load sheet error', e);
-    alert('ไม่สามารถเชื่อมต่อ Google Sheet ได้');
+  });
+}
+
+function sortBy(key) {
+  if (key === 'sentAt') {
+    sortState.key = key;
+    sortState.asc = false;
+    _initialSortDone = true;
+  } else if (!_initialSortDone) {
+    sortState.key = key;
+    sortState.asc = true;
+    _initialSortDone = true;
+  } else if (sortState.key === key) {
+    sortState.asc = !sortState.asc;
+  } else {
+    sortState.key = key;
+    sortState.asc = true;
   }
+
+  parcels.sort((a, b) => {
+    let va = a[key];
+    let vb = b[key];
+
+    if (key === 'sentAt') {
+      va = parseDate(va);
+      vb = parseDate(vb);
+      const dA = new Date(va.getFullYear(), va.getMonth(), va.getDate());
+      const dB = new Date(vb.getFullYear(), vb.getMonth(), vb.getDate());
+      if (dA.getTime() !== dB.getTime()) {
+        return sortState.asc ? dA - dB : dB - dA;
+      }
+      return sortState.asc ? va - vb : vb - va;
+    }
+
+    if (typeof va === 'number') {
+      return sortState.asc ? va - vb : vb - va;
+    }
+
+    return sortState.asc
+      ? String(va).localeCompare(String(vb))
+      : String(vb).localeCompare(String(va));
+  });
+
+  updateSortIcons();
+  render();
 }
 
-window.addEventListener('load', loadFromSheet);
-
 // =========================
-// HELPERS
+// HIGHLIGHT HELPER (FIXED REGEX)
 // =========================
-function parseDate(str){
-  if(!str) return new Date(0);
-  const parts=str.split(' ');
-  if(parts.length<2) return new Date(0);
-  const d=parts[0], t=parts[1];
-  const a=d.split('/').map(Number);
-  const b=t.split(':').map(Number);
-  if(a.length!==3||b.length!==2) return new Date(0);
-  return new Date(a[2],a[1]-1,a[0],b[0],b[1]);
-}
-function formatDate(d){
-  const dd=String(d.getDate()).padStart(2,'0');
-  const mm=String(d.getMonth()+1).padStart(2,'0');
-  const yyyy=d.getFullYear();
-  const hh=String(d.getHours()).padStart(2,'0');
-  const mi=String(d.getMinutes()).padStart(2,'0');
-  return dd+'/'+mm+'/'+yyyy+' '+hh+':'+mi;
-}
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[m]));
-}
 function highlight(text){
-  const q=(document.getElementById('searchInput').value||'').trim();
-  if(!q) return escapeHtml(text);
+  const q = (document.getElementById('searchInput').value || '').trim();
+  if (!q) return text;
   try{
-    const qEsc=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    const re=new RegExp('('+qEsc+')','ig');
-    return escapeHtml(String(text)).replace(re,'<span class="hl">$1</span>');
+    // Properly escape regex special chars
+    const qEsc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('(' + qEsc + ')', 'ig');
+    return String(text).replace(re, '<span class="hl">$1</span>');
   }catch(e){
-    return escapeHtml(text);
+    return text;
   }
 }
 
 // =========================
-// PAGINATION
+// RENDERING
 // =========================
-function paginate(arr){ const start=(currentPage-1)*pageSize; return arr.slice(start, start+pageSize); }
-function renderPagination(total){
-  const el=document.getElementById('pagination');
-  if(!el) return;
-  const pageCount=Math.max(1, Math.ceil(total/pageSize));
-  let html='';
-  for(let i=1;i<=pageCount;i++){
-    html += '<button type="button" class="'+(i===currentPage?'active':'')+'" onclick="gotoPage('+i+')">'+i+'</button>';
-  }
-  el.innerHTML = html;
-}
-function gotoPage(p){ currentPage=p; render(); }
+function render() {
+  const tb = document.getElementById('parcelTable');
+  tb.innerHTML = '';
+  let sin = 0, sout = 0;
 
-// =========================
-// FILTER / SORT / RENDER
-// =========================
-function filterRow(p){
-  if(!p) return false;
-  const fd=document.getElementById('filterDate').value;
-  const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
-  const fa=document.getElementById('filterAOT').value;
-  const fs=document.getElementById('filterStatus').value;
-  let matchDate=true;
-  if(fd&&p.sentAt){
-    const parts=fd.split('-');
-    if(parts.length===3){
-      const ddmmyyyy=parts[2]+'/'+parts[1]+'/'+parts[0];
-      matchDate=p.sentAt.startsWith(ddmmyyyy);
+  const qRaw = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+
+  // collect rows first so we can prioritize full Tracking matches
+  const rows = [];
+
+  parcels.forEach(p => {
+    if (filter(p)) {
+      const isFullMatch = qRaw && p.track.toLowerCase() === qRaw;
+
+      rows.push({ p, isFullMatch });
     }
-  }
-  let matchText=true;
-  if(q){
-    const hay=[p.track,p.sender,p.address,p.senderPhone,p.aot,p.status].join(' ').toLowerCase();
-    matchText=hay.includes(q);
-  }
-  const matchAOT=!fa||p.aot===fa;
-  const matchStatus=!fs||p.status===fs;
-  return matchDate&&matchText&&matchAOT&&matchStatus;
-}
-
-function sortBy(key){
-  sortState.key=key;
-  sortState.asc = key==='sentAt' ? false : !sortState.asc;
-  parcels.sort((a,b)=>{
-    let va=a[key], vb=b[key];
-    if(key==='sentAt'){
-      va=parseDate(va); vb=parseDate(vb);
-      return sortState.asc?va-vb:vb-va;
-    }
-    if(typeof va==='number') return sortState.asc?va-vb:vb-va;
-    return sortState.asc?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));
-  });
-  currentPage=1; render();
-}
-
-function render(){
-  const tb=document.getElementById('parcelTable');
-  if(!tb) return;
-  tb.innerHTML='';
-  let sin=0,sout=0;
-  const qRaw=(document.getElementById('searchInput').value||'').trim().toLowerCase();
-  const rows=[];
-  parcels.forEach(p=>{
-    if(filterRow(p)){
-      const isFullMatch = qRaw && p.track && p.track.toLowerCase()===qRaw;
-      rows.push({p,isFullMatch});
-    }
-    if(p&&p.status==='อยู่คลัง') sin++; else if(p&&p.status==='ส่งออกแล้ว') sout++;
-  });
-  rows.sort((a,b)=> (a.isFullMatch===b.isFullMatch)?0:(a.isFullMatch?-1:1));
-
-  const pageRows = paginate(rows);
-  pageRows.forEach(({p,isFullMatch})=>{
-    tb.innerHTML += '<tr class="'+(isFullMatch?'full-match':'')+'">'
-      +'<td>'+highlight(p.track)+'</td>'
-      +'<td>'+highlight(p.sentAt)+'</td>'
-      +'<td>'+highlight(p.aot)+'</td>'
-      +'<td>'+highlight(p.sender)+'</td>'
-      +'<td>'+highlight(p.address)+'</td>'
-      +'<td>'+highlight(p.senderPhone)+'</td>'
-      +'<td>'+escapeHtml(p.weight)+' g</td>'
-      +'<td><span class="badge '+(p.status==='อยู่คลัง'?'status-in':'status-out')+'">'+highlight(p.status)+'</span></td>'
-      +'<td><button type="button" onclick="showTimeline(\''+escapeHtml(p.track)+'\')">ดู Flow</button></td>'
-      +'</tr>';
+    p.status === 'อยู่คลัง' ? sin++ : sout++;
   });
 
-  document.getElementById('sumAll').innerText=parcels.length;
-  document.getElementById('sumIn').innerText=sin;
-  document.getElementById('sumOut').innerText=sout;
+  // full match first, then keep original order
+  rows.sort((a, b) => {
+    if (a.isFullMatch && !b.isFullMatch) return -1;
+    if (!a.isFullMatch && b.isFullMatch) return 1;
+    return 0;
+  });
 
-  renderPagination(rows.length);
+  rows.forEach(({ p, isFullMatch }) => {
+    tb.innerHTML += `
+      <tr class="aot-${p.aot} ${isFullMatch ? 'full-match' : ''}">
+        <td>${highlight(p.track)}</td>
+        <td>${highlight(p.sentAt)}</td>
+        <td>${highlight(p.aot)}</td>
+        <td>${highlight(p.sender)}</td>
+        <td>${highlight(p.address)}</td>
+        <td>${highlight(p.senderPhone)}</td>
+        <td>${p.weight} g</td>
+        <td><span class="badge ${p.status === 'อยู่คลัง' ? 'status-in' : 'status-out'}">${highlight(p.status)}</span></td>
+        <td><button onclick="showTimeline('${p.track}')">ดู Flow</button></td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('sumAll').innerText = parcels.length;
+  document.getElementById('sumIn').innerText = sin;
+  document.getElementById('sumOut').innerText = sout;
 }
 
-['searchInput','filterAOT','filterStatus','filterDate'].forEach(id=>{
-  const el=document.getElementById(id);
-  if(el){ el.oninput=()=>{ currentPage=1; render(); }; el.onchange=()=>{ currentPage=1; render(); }; }
+function filter(p) {
+  const fd = document.getElementById('filterDate').value;
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const fa = document.getElementById('filterAOT').value;
+  const fs = document.getElementById('filterStatus').value;
+
+  // Date match (input yyyy-mm-dd -> compare dd/mm/yyyy)
+  let matchDate = true;
+  if (fd) {
+    const parts = fd.split('-');
+    if (parts.length === 3) {
+      const ddmmyyyy = parts[2] + '/' + parts[1] + '/' + parts[0];
+      matchDate = p.sentAt.startsWith(ddmmyyyy);
+    }
+  }
+
+  // Text search across multiple fields (case-insensitive, supports full tracking)
+  let matchText = true;
+  if (q) {
+    const hay = [p.track, p.sender, p.address, p.senderPhone, p.aot, p.status]
+      .join(' ')
+      .toLowerCase();
+
+    matchText = hay.includes(q);
+  }
+
+  const matchAOT = !fa || p.aot === fa;
+  const matchStatus = !fs || p.status === fs;
+
+  return matchDate && matchText && matchAOT && matchStatus;
+}
+
+function render() {
+  const tb = document.getElementById('parcelTable');
+  tb.innerHTML = '';
+  let sin = 0, sout = 0;
+
+  parcels.forEach(p => {
+    if (filter(p)) {
+      tb.innerHTML += `
+        <tr class="aot-${p.aot}">
+          <td>${highlight(p.track)}</td>
+          <td>${highlight(p.sentAt)}</td>
+          <td>${highlight(p.aot)}</td>
+          <td>${highlight(p.sender)}</td>
+          <td>${highlight(p.address)}</td>
+          <td>${highlight(p.senderPhone)}</td>
+          <td>${p.weight} g</td>
+          <td><span class="badge ${p.status === 'อยู่คลัง' ? 'status-in' : 'status-out'}">${highlight(p.status)}</span></td>
+          <td><button onclick="showTimeline('${p.track}')">ดู Flow</button></td>
+        </tr>
+      `;
+    }
+    p.status === 'อยู่คลัง' ? sin++ : sout++;
+  });
+
+  document.getElementById('sumAll').innerText = parcels.length;
+  document.getElementById('sumIn').innerText = sin;
+  document.getElementById('sumOut').innerText = sout;
+}
+
+function filter(p) {
+  const fd = document.getElementById('filterDate').value;
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const fa = document.getElementById('filterAOT').value;
+  const fs = document.getElementById('filterStatus').value;
+
+  // Date match (input yyyy-mm-dd -> compare dd/mm/yyyy)
+  let matchDate = true;
+  if (fd) {
+    const parts = fd.split('-');
+    if (parts.length === 3) {
+      const ddmmyyyy = parts[2] + '/' + parts[1] + '/' + parts[0];
+      matchDate = p.sentAt.startsWith(ddmmyyyy);
+    }
+  }
+
+  // Text search across multiple fields (supports numeric-only tracking search)
+  let matchText = true;
+  if (q) {
+    const hay = [p.track, p.sender, p.address, p.senderPhone, p.aot, p.status]
+      .join(' ')
+      .toLowerCase();
+
+    const qDigits = q.replace(/\D/g, '');
+    const trackDigits = p.track.replace(/\D/g, '');
+
+    matchText = hay.includes(q) || (qDigits && trackDigits.includes(qDigits));
+  }
+
+  const matchAOT = !fa || p.aot === fa;
+  const matchStatus = !fs || p.status === fs;
+
+  return matchDate && matchText && matchAOT && matchStatus;
+}
+
+['searchInput','filterAOT','filterStatus','filterDate'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.oninput = render;
+  el.onchange = render;
 });
 
-function refreshPage(){
-  document.getElementById('filterDate').value='';
-  document.getElementById('searchInput').value='';
-  document.getElementById('filterAOT').value='';
-  document.getElementById('filterStatus').value='';
-  sortState={key:'sentAt',asc:false};
-  currentPage=1; render();
+// Allow Enter key to trigger search
+const si = document.getElementById('searchInput');
+if (si) {
+  si.addEventListener('keyup', e => {
+    if (e.key === 'Enter') render();
+  });
 }
-function quickFilter(status){
-  document.getElementById('filterStatus').value=status;
-  document.getElementById('searchInput').value='';
-  document.getElementById('filterAOT').value='';
-  document.getElementById('filterDate').value='';
-  currentPage=1; render();
+
+function refreshPage() {
+  document.getElementById('filterDate').value = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterAOT').value = '';
+  document.getElementById('filterStatus').value = '';
+  sortState = { key: 'sentAt', asc: false };
+  _initialSortDone = false;
+  sortBy('sentAt');
 }
 
 // =========================
-// FORM ADD (SAVE TO GOOGLE SHEET)
+// QUICK FILTER FROM KPI CARDS
 // =========================
-async function addParcelFromForm(){
-  const payload = {
-    Tracking: fTrack.value.trim(),
-    sentAt: formatDate(new Date()),
-    aot: fAOT.value,
-    sender: fSender.value.trim(),
-    address: fAddress.value.trim(),
-    senderPhone: fPhone.value.trim(),
-    weight: 500,
-    status: fStatus.value
-  };
-  try{
-    const res = await fetch(API_URL,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    const result = await res.json();
-    if(result && result.status === 'ok'){
-      await loadFromSheet();
-      document.getElementById('addForm').reset();
-      alert('บันทึกลงฐานข้อมูลเรียบร้อยแล้ว');
-    }else{
-      alert('บันทึกไม่สำเร็จ: '+((result&&result.message)||'Unknown error'));
-    }
-  }catch(e){
-    alert('เชื่อมต่อ Google Sheet ไม่สำเร็จ');
-    console.error(e);
-  }
-  return false;
+function quickFilter(status){
+  document.getElementById('filterStatus').value = status;
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterAOT').value = '';
+  document.getElementById('filterDate').value = '';
+  render();
+  window.scrollTo({ top: document.querySelector('table').offsetTop - 80, behavior: 'smooth' });
 }
 
 // =========================
 // EXPORTS
 // =========================
-function exportCSV(){
-  const headers=['Tracking','วันที่เข้าระบบ','สนามบิน','ผู้ส่ง','ที่อยู่ปลายทาง','เบอร์ผู้ส่ง','น้ำหนัก(g)','สถานะ'];
-  let csv=headers.join(',')+'\n';
-  parcels.forEach(p=>{
-    if(!filterRow(p)) return;
-    const row=[p.track,p.sentAt,p.aot,p.sender,p.address.replace(/,/g,' '),p.senderPhone,p.weight,p.status];
-    csv += row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')+'\n';
-  });
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='skysend_parcels_export.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+function exportPDF() {
+  const html = buildPDFHtml();
+
+  let win = null;
+  try {
+    win = window.open('', '_blank');
+  } catch (e) {
+    win = null;
+  }
+
+  if (win && win.document) {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  } else {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  }
 }
-function exportPDF(){ alert('PDF export preview: ใช้งานได้หลังเชื่อมเต็มรูปแบบ'); }
+
+function buildPDFHtml() {
+  let html = '<html><head><title>SKYSEND PDF</title>' +
+    '<style>body{font-family:Arial}h2{margin-top:20px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #333;padding:6px;font-size:12px}</style>' +
+    '</head><body>';
+
+  html += '<h2>รายงานพัสดุ (แยกตามสนามบิน)</h2>';
+  html += '<table><tr><th>Tracking</th><th>วันที่</th><th>สนามบิน</th><th>ผู้ส่ง</th><th>ปลายทาง</th><th>สถานะ</th></tr>';
+
+  parcels.filter(p => filter(p)).forEach(p => {
+    html += `<tr><td>${p.track}</td><td>${p.sentAt}</td><td>${p.aot}</td><td>${p.sender}</td><td>${p.address}</td><td>${p.status}</td></tr>`;
+  });
+
+  html += '</table></body></html>';
+  return html;
+}
+
+function exportCSV() {
+  const headers = ['Tracking','วันที่เข้าระบบ','สนามบิน','ผู้ส่ง','ที่อยู่ปลายทาง','เบอร์ผู้ส่ง','น้ำหนัก(g)','สถานะ'];
+  let csv = headers.join(',') + '\n';
+
+  parcels.forEach(p => {
+    if (!filter(p)) return;
+    const row = [p.track,p.sentAt,p.aot,p.sender,p.address.replace(/,/g,' '),p.senderPhone,p.weight,p.status];
+    csv += row.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'skysend_parcels_export.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 // =========================
-// FLOW (FIXED STRING ESCAPING)
+// FLOW DIALOG
 // =========================
-function showTimeline(track){
-  const p=parcels.find(x=>x&&x.track===track);
-  if(!p){ alert('ไม่พบข้อมูลพัสดุ'); return; }
-  const dialog=document.getElementById('timelineDialog');
-  dialog.innerHTML = `<h3>📦 Flow Diagram : ${escapeHtml(track)}</h3>
-    <p>(โหมดพรีวิว)</p>
-    <button type="button" onclick="document.getElementById('timelineDialog').close()">ปิด</button>`;
+function showTimeline(track) {
+  const p = parcels.find(x => x.track === track);
+  if (!p) return;
+  let html = '<h3>📦 Flow Diagram : ' + track + '</h3>';
+
+  p.events.forEach((e, i) => {
+    html += `
+      <p>
+        🔹 <strong>${i + 1}. ${e.point}</strong><br>
+        👤 ${e.by}<br>
+        📞 ${e.phone}<br>
+        ⏰ ${e.time}
+      </p>
+    `;
+    if (i < p.events.length - 1) {
+      html += '<p style="text-align:center">⬇️</p>';
+    }
+  });
+
+  html += '<button onclick="document.getElementById(\'timelineDialog\').close()">ปิด</button>';
+  const dialog = document.getElementById('timelineDialog');
+  dialog.innerHTML = html;
   dialog.showModal();
 }
 
 // =========================
-// BASIC TESTS (ADDED)
+// BASIC TESTS
+(function runTests(){
+  console.assert(typeof refreshPage === 'function', 'refreshPage should be defined');
+  console.assert(typeof exportCSV === 'function', 'exportCSV should be defined');
+  console.assert(typeof exportPDF === 'function', 'exportPDF should be defined');
+  console.assert(parcels.length === 100, 'Should seed exactly 100 parcels');
+
+  // full tracking match should be found (do NOT persist search value to UI)
+  const testTrack = parcels[0].track;
+  const input = document.getElementById('searchInput');
+  const prev = input.value;
+  input.value = testTrack;
+  console.assert(filter(parcels[0]) === true, 'Full tracking match should return true');
+  input.value = prev; // restore
+})();
+
+// =========================
 // =========================
 (function runTests(){
-  console.assert(document.getElementById('pagination')!==null,'pagination element must exist');
-  console.assert(typeof render==='function','render should be defined');
-  console.assert(typeof renderPagination==='function','renderPagination should be defined');
-  console.assert(typeof loadFromSheet==='function','loadFromSheet should be defined');
+  console.assert(typeof refreshPage === 'function', 'refreshPage should be defined');
+  console.assert(typeof exportCSV === 'function', 'exportCSV should be defined');
+  console.assert(typeof exportPDF === 'function', 'exportPDF should be defined');
+  console.assert(parcels.length === 100, 'Should seed exactly 100 parcels');
 })();
+
+// Initial load
+updateSortIcons();
+sortBy('sentAt');
 </script>
 </body>
 </html>
