@@ -88,7 +88,9 @@ const AOTS = ['BKK','DMK','CNX','HKT','HDY','CEI'];
 let sortState = { key: 'sentAt', asc: false };
 let _initialSortDone = false;
 
-// สุ่มชื่อ–นามสกุลไทย
+// =========================
+// MASTER DATA
+// =========================
 const thaiFirstNames = ['ธนพล','พิมพ์ชนก','สมศักดิ์','กานต์ชนก','วรพล','ชลธิชา','อภิชาติ','ลลิตา','ปรีชา','ธัญญา','สุพจน์','อรอนงค์','กิตติพงษ์','ศิริพร','มนัส','วราภรณ์','อนุชา','พัชรี','ธีรพงษ์','กมลชนก','สันติ','ปวีณา','อำนาจ','นฤมล','สุชาติ','รัตนา','ไพศาล','เบญจมาศ','ณัฐพล','ปณิธาน','จิราภรณ์','วาสนา','เดชาธร','อัจฉรา','พิชิต','ภัทรวดี','ชาญชัย','ณัฐกานต์','กุลธิดา','วุฒิชัย','ศศิธร','ธวัชชัย','ปรียานุช','จารุวรรณ','ปกรณ์','อิสรีย์','ธีรศักดิ์','ดวงใจ','ศุภชัย','ขวัญฤดี'];
 
 const thaiLastNames = ['ศรีชัย','วัฒนา','บุญมา','พรหมมา','อินทร์ทอง','มณีรัตน์','แก้วคำ','สายทอง','คำดี','สุขใจ','แสนดี','ใจบุญ','วงศ์ชัย','แก้วใส','รุ่งเรือง','พูลผล','จันทร์ดี','แดงดี','แสงทอง','วิเศษ','สุขสบาย','แสนสุข','กล้าหาญ','ทองแท้','มีชัย','ศรีสุข','อินทร','วงษ์ดี','เจริญผล','พูนทรัพย์','ศักดิ์ศรี','วัฒนกุล','ทองหล่อ','นาคะ','สุวรรณ','ประเสริฐ','กิตติคุณ','รัตนวงศ์','บุญส่ง','โชติช่วง','ธรรมรักษ์','ศุภกิจ','เพิ่มพูน','วิริยะ','สุนทร','จงเจริญ','นิลวรรณ','คำแปง','พงษ์ดี','แสงใส'];
@@ -118,23 +120,9 @@ const thaiAddressMap = [
 
 const thaiStreets = ['สุขุมวิท','พหลโยธิน','วิภาวดีรังสิต','มิตรภาพ','เจริญกรุง','นิมมานเหมินท์','ราชดำเนิน','เพชรเกษม','ศรีนครินทร์','ลาดพร้าว','รามคำแหง','กาญจนาภิเษก','มหิดล','ประชาราษฎร์','อุดมสุข','สันติธรรม','ทุ่งรี','สายเอเชีย','ท่าแพ','แม่ฟ้าหลวง'];
 
-function randomThaiName() {
-  const f = thaiFirstNames[Math.floor(Math.random()*thaiFirstNames.length)];
-  const l = thaiLastNames[Math.floor(Math.random()*thaiLastNames.length)];
-  return 'นาย' + f + ' ' + l;
-}
-
-function randomThaiAddress() {
-  const no = Math.floor(1 + Math.random()*299);
-  const street = thaiStreets[Math.floor(Math.random()*thaiStreets.length)];
-  const pick = thaiAddressMap[Math.floor(Math.random()*thaiAddressMap.length)];
-  return `บ้านเลขที่ ${no} ถนน${street} อ.${pick.dist} จ.${pick.prov} ${pick.zip}`;
-}
-
-function randomPhone() {
-  return '08' + Math.floor(10000000 + Math.random()*90000000);
-}
-
+// =========================
+// DATE HELPERS
+// =========================
 function parseDate(str) {
   const [d, t] = str.split(' ');
   const [day, mon, year] = d.split('/').map(Number);
@@ -151,66 +139,53 @@ function formatDate(d) {
   return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
 }
 
-// =========================
-// SEED DATA (50 parcels)
-// =========================
-
-// สุ่มเวลาแบบสมจริง: ส่วนใหญ่ภายใน 7 วันที่ผ่านมา, บางส่วนต้นเดือน, อยู่ในเวลาทำการ
-function randomDateFromMonthStart() {
-  const now = new Date();
-
-  function randomBusinessTime(base) {
-    const h = 8 + Math.floor(Math.random() * 13); // 08–20
-    const m = Math.floor(Math.random() * 60);
-    const r = new Date(base);
-    r.setHours(h, m, 0, 0);
-    return r;
-  }
-
-  let d;
-  const roll = Math.random();
-
-  if (roll < 0.6) {
-    const daysBack = Math.floor(Math.random() * 4); // 0..3
-    d = new Date(now);
-    d.setDate(now.getDate() - daysBack);
-  } else if (roll < 0.9) {
-    const daysBack = 4 + Math.floor(Math.random() * 4); // 4..7
-    d = new Date(now);
-    d.setDate(now.getDate() - daysBack);
-  } else {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    const span = Math.max(1, now.getDate() - 1);
-    d = new Date(start);
-    d.setDate(1 + Math.floor(Math.random() * span));
-  }
-
-  return formatDate(randomBusinessTime(d));
-}
-
-function addMinutes(date, mins) {
-  const d = new Date(date.getTime() + mins * 60000);
+function addMinutes(dateObj, minutes) {
+  const d = new Date(dateObj.getTime());
+  d.setMinutes(d.getMinutes() + minutes);
   return formatDate(d);
 }
 
-for (let i = 0; i < 50; i++) {
-  const baseTime = randomDateFromMonthStart();
-  const baseDate = parseDate(baseTime);
+// =========================
+// RANDOM DATE 1-15 (FIXED PER LOAD)
+// =========================
+const now = new Date();
+function randomDate1to15() {
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const day = 1 + Math.floor(Math.random() * 15);
+  const hour = Math.floor(Math.random() * 24);
+  const minute = Math.floor(Math.random() * 60);
+  return new Date(year, month, day, hour, minute, 0);
+}
+
+// =========================
+// SEED DATA (100 PARCELS)
+// =========================
+parcels.length = 0;
+
+for (let i = 0; i < 100; i++) {
+  const baseDate = randomDate1to15();
+  const baseTime = formatDate(baseDate);
+
+  const senderName = 'นาย' + thaiFirstNames[i % thaiFirstNames.length] + ' ' + thaiLastNames[i % thaiLastNames.length];
+  const addrPick = thaiAddressMap[i % thaiAddressMap.length];
+  const street = thaiStreets[i % thaiStreets.length];
+  const address = `บ้านเลขที่ ${i + 1} ถนน${street} อ.${addrPick.dist} จ.${addrPick.prov} ${addrPick.zip}`;
 
   const events = [
-    { point:'รับจากเครื่อง Kiosk', by:'เจ้าหน้าที่ Kiosk ' + ((i % 4) + 1), phone: randomPhone(), time: baseTime },
-    { point:'คัดแยกคลัง', by:'พนักงานคลัง ' + ((i % 3) + 1), phone: randomPhone(), time: addMinutes(baseDate, 30 + (i % 20)) },
-    { point:'เตรียมส่งออก', by:'เจ้าหน้าที่ขนส่ง ' + ((i % 2) + 1), phone: randomPhone(), time: addMinutes(baseDate, 90 + (i % 40)) }
+    { point: 'รับจากเครื่อง Kiosk', by: 'เจ้าหน้าที่ Kiosk ' + ((i % 4) + 1), phone: '08' + String(10000000 + i).padStart(8, '0'), time: baseTime },
+    { point: 'คัดแยกคลัง', by: 'พนักงานคลัง ' + ((i % 3) + 1), phone: '08' + String(20000000 + i).padStart(8, '0'), time: addMinutes(baseDate, 45) },
+    { point: 'เตรียมส่งออก', by: 'เจ้าหน้าที่ขนส่ง ' + ((i % 2) + 1), phone: '08' + String(30000000 + i).padStart(8, '0'), time: addMinutes(baseDate, 120) }
   ];
 
   parcels.push({
     track: 'SKY' + (240001 + i),
-    sentAt: events[0].time,
+    sentAt: baseTime,
     aot: AOTS[i % AOTS.length],
-    sender: randomThaiName(),
-    address: randomThaiAddress(),
-    senderPhone: randomPhone(),
-    weight: 200 + (i * 11) % 600,
+    sender: senderName,
+    address: address,
+    senderPhone: '08' + String(40000000 + i).padStart(8, '0'),
+    weight: 300 + (i * 7) % 700,
     status: i % 2 === 0 ? 'อยู่คลัง' : 'ส่งออกแล้ว',
     events
   });
@@ -232,7 +207,6 @@ function updateSortIcons() {
 }
 
 function sortBy(key) {
-  // วันที่เข้าระบบ: บังคับเรียงจากใหม่ -> เก่าเสมอ
   if (key === 'sentAt') {
     sortState.key = key;
     sortState.asc = false; // newest first
@@ -255,7 +229,6 @@ function sortBy(key) {
     if (key === 'sentAt') {
       va = parseDate(va);
       vb = parseDate(vb);
-      // เรียงตาม "วัน" ก่อน แล้วค่อย "เวลา"
       const dA = new Date(va.getFullYear(), va.getMonth(), va.getDate());
       const dB = new Date(vb.getFullYear(), vb.getMonth(), vb.getDate());
       if (dA.getTime() !== dB.getTime()) {
@@ -360,6 +333,17 @@ function showTimeline(track) {
   dialog.innerHTML = html;
   dialog.showModal();
 }
+
+// =========================
+// BASIC TESTS (Console)
+// =========================
+(function runTests(){
+  console.assert(typeof addMinutes === 'function', 'addMinutes should be defined');
+  const d = new Date(2025,0,1,10,0);
+  const s = addMinutes(d, 60);
+  console.assert(typeof s === 'string' && s.includes('11:00'), 'addMinutes should add 60 minutes');
+  console.assert(parcels.length === 100, 'Should seed exactly 100 parcels');
+})();
 
 // Initial load
 updateSortIcons();
